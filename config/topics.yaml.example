@@ -1,0 +1,43 @@
+# Knowledge Pipeline 主題分類設定
+# 複製此檔案為 topics.yaml 並填入實際值
+
+version: "1.0"
+
+# 主題定義（給 AI 閱讀描述，決定歸屬）
+topics:
+  UFO_UAP:
+    name: "UFO/UAP Research"
+    description: "不明飛行物體研究、政府揭露、先進推進技術"
+    notebook: "UFO-Disclosure-Archive"
+    prompt_template: "ufo_research"
+    channels:
+      - "Ross_Coulthart"
+      - "Ashton_Forbes"
+  
+  Crypto_Finance:
+    name: "Crypto & Finance"
+    description: "加密貨幣分析、宏觀經濟、機構採用"
+    notebook: "Bitcoin-Analysis"
+    prompt_template: "crypto_tech"
+    channels:
+      - "Bankless"
+      - "Benjamin_Cowen"
+      - "Coin_Bureau"
+  
+  Spiritual_Growth:
+    name: "Spiritual Growth"
+    description: "意識覺醒、正念練習、通靈教導"
+    notebook: "Presence-Teachings"
+    prompt_template: "spiritual"
+    channels:
+      - "Eckhart_Tolle"
+      - "Paul_Selig"
+
+# 頻道預設值（當 AI 未能分類時的備援規則）
+channels:
+  "Ross_Coulthart":
+    default_topic: "UFO_UAP"
+  "Bankless":
+    default_topic: "Crypto_Finance"
+  "Eckhart_Tolle":
+    default_topic: "Spiritual_Growth"

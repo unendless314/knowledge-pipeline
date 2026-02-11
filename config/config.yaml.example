@@ -1,0 +1,44 @@
+# Knowledge Pipeline 系統設定
+# 複製此檔案為 config.yaml 並填入實際值
+
+version: "1.0"
+
+# 路徑設定
+paths:
+  # YouTube Transcriber 輸出目錄（必填）
+  # 範例: "/home/user/youtube_transcriber/output"
+  transcriber_output: ""
+  
+  # 中間態檔案存放處（相對於專案根目錄）
+  intermediate: "./intermediate"
+
+# Open Notebook API 設定
+open_notebook:
+  # API Base URL
+  base_url: "http://localhost:5055"
+  
+  # API 認證密碼（建議使用環境變數 OPEN_NOTEBOOK_PASSWORD）
+  # 若設定環境變數，此處可留空
+  password: ""
+
+# LLM Provider 設定
+llm:
+  # Provider 類型: gemini_cli / openai_api / gemini_api / local_llm
+  provider: "gemini_cli"
+  
+  # Gemini CLI 設定（當 provider: gemini_cli 時使用）
+  project_dir: "/path/to/knowledge-pipeline"
+  timeout: 300
+  max_retries: 3
+
+# 批次處理設定
+batch:
+  max_concurrent: 3        # 同時處理檔案數（避免 API 限流）
+  retry_attempts: 3        # API 失敗重試次數
+  retry_delay: 5           # 重試間隔（秒）
+
+# 日誌設定
+logging:
+  level: "INFO"           # DEBUG / INFO / WARNING / ERROR
+  format: "console"       # console / json
+  file: ""                # 若指定，同時輸出到檔案（相對路徑）
