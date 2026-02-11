@@ -23,6 +23,13 @@ from src.llm.exceptions import (
     PromptTemplateNotFoundError,
 )
 
+from src.llm.client import LLMClient
+
+from src.llm.prompts import (
+    PromptLoader,
+    OutputParser,
+)
+
 __all__ = [
     # Models
     "ProviderType",
@@ -39,4 +46,9 @@ __all__ = [
     "LLMRateLimitError",
     "LLMParseError",
     "PromptTemplateNotFoundError",
+    # Client
+    "LLMClient",
+    # Prompts
+    "PromptLoader",
+    "OutputParser",
 ]

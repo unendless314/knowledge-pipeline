@@ -396,6 +396,16 @@ class SourceUpdateRequest:
     topics: list[str]
 
 
+@dataclass
+class NotebookLinkRequest:
+    """
+    POST /api/notebooks/{id}/sources/{source_id} 請求體
+    
+    用於將 Source 關聯到 Notebook。
+    """
+    pass  # 通常是空請求體，ID 在 URL 中
+
+
 # ============================================================================
 # 配置相關模型
 # ============================================================================
