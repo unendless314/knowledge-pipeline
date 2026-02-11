@@ -135,7 +135,7 @@ class KnowledgePipeline:
             self.logger.info(f"清理 {cleaned} 個過期臨時檔案")
         
         # 執行發現
-        transcriber_output = Path(self.config.paths.transcriber_output)
+        transcriber_output = Path(self.config.transcriber_output)
         transcripts = self.discovery.discover(
             root_dir=transcriber_output,
             min_word_count=min_word_count,
@@ -175,7 +175,7 @@ class KnowledgePipeline:
         self.logger.info("=" * 60)
         
         # 再次執行發現（取得待處理檔案）
-        transcriber_output = Path(self.config.paths.transcriber_output)
+        transcriber_output = Path(self.config.transcriber_output)
         transcripts = self.discovery.discover(
             root_dir=transcriber_output,
             min_word_count=100
@@ -197,7 +197,7 @@ class KnowledgePipeline:
             results = self.analyzer.analyze_batch(
                 transcripts=transcripts,
                 prompt_template=prompt_template,
-                output_dir=Path(self.config.paths.intermediate) / "pending",
+                output_dir=Path(self.config.intermediate) / "pending",
                 progress_callback=on_progress,
                 delay_between_calls=1.0
             )
@@ -234,7 +234,7 @@ class KnowledgePipeline:
             self.logger.info("Open Notebook 服務正常")
         
         # 讀取 pending 目錄中的檔案
-        pending_dir = Path(self.config.paths.intermediate) / "pending"
+        pending_dir = Path(self.config.intermediate) / "pending"
         if not pending_dir.exists():
             self.logger.info("沒有待上傳的檔案")
             return 0
@@ -270,7 +270,7 @@ class KnowledgePipeline:
                 source_id = self.uploader.upload(analyzed, notebook_name)
                 
                 # 更新檔案狀態
-                intermediate_dir = Path(self.config.paths.intermediate)
+                intermediate_dir = Path(self.config.intermediate)
                 self.state_manager.mark_as_uploaded(
                     filepath=file_path,
                     source_id=source_id,

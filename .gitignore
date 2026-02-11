@@ -47,3 +47,8 @@ temp/*
 # Configuration with secrets
 config/config.yaml
 config/topics.yaml
+
+# Test directories
+test_single/
+test/
+

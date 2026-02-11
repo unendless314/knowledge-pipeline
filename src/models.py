@@ -444,6 +444,23 @@ class ChannelConfig:
 
 
 @dataclass
+class LLMConfig:
+    """
+    LLM Provider 配置
+    
+    Attributes:
+        provider: Provider 類型 (gemini_cli / openai_api / gemini_api / local_llm)
+        project_dir: Gemini CLI 專案目錄
+        timeout: 請求超時時間（秒）
+        max_retries: 最大重試次數
+    """
+    provider: str
+    project_dir: Path
+    timeout: int = 120
+    max_retries: int = 3
+
+
+@dataclass
 class PipelineConfig:
     """
     config.yaml 中的 Pipeline 配置
@@ -452,6 +469,7 @@ class PipelineConfig:
         transcriber_output: YouTube Transcriber 輸出目錄路徑
         intermediate: 中間態檔案存放路徑
         open_notebook: ON API 配置
+        llm: LLM Provider 配置
         min_word_count: 最小字數限制（預設 100）
         max_concurrent: 同時處理檔案數（預設 3）
         retry_attempts: API 失敗重試次數（預設 3）
@@ -460,6 +478,7 @@ class PipelineConfig:
     transcriber_output: Path
     intermediate: Path
     open_notebook: OpenNotebookConfig
+    llm: LLMConfig
     min_word_count: int = 100
     max_concurrent: int = 3
     retry_attempts: int = 3

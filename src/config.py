@@ -16,6 +16,7 @@ import yaml
 from src.models import (
     PipelineConfig,
     OpenNotebookConfig,
+    LLMConfig,
     TopicConfig,
     ChannelConfig,
 )
@@ -148,6 +149,15 @@ class ConfigLoader:
             password=on_password,
         )
         
+        # LLM 配置
+        llm_data = data.get("llm", {})
+        llm = LLMConfig(
+            provider=llm_data.get("provider", "gemini_cli"),
+            project_dir=Path(llm_data.get("project_dir", ".")),
+            timeout=llm_data.get("timeout", 120),
+            max_retries=llm_data.get("max_retries", 3),
+        )
+        
         # 批次設定（使用預設值若未指定）
         batch = data.get("batch", {})
         
@@ -155,6 +165,7 @@ class ConfigLoader:
             transcriber_output=transcriber_output,
             intermediate=intermediate,
             open_notebook=open_notebook,
+            llm=llm,
             min_word_count=data.get("min_word_count", 100),
             max_concurrent=batch.get("max_concurrent", 3),
             retry_attempts=batch.get("retry_attempts", 3),
