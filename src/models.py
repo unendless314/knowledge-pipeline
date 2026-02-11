@@ -362,10 +362,12 @@ class SourceCreateRequest:
         type: 輸入類型，固定為 "text"
         title: Source 標題（格式: "{channel} | {title} | {published_at}"）
         content: 完整內容（含 frontmatter YAML + 轉錄內容）
+        embed: 是否立即建立嵌入（建議先設為 False，待 topics 更新後再觸發）
     """
     type: str  # "text", "link", "upload"
     title: str
     content: str
+    embed: bool = False
 
 
 @dataclass
