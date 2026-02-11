@@ -180,7 +180,7 @@
 **核心原則**：
 - ⚠️ **禁止直接寫入 Open Notebook**：LLM 輸出必須先保存為 Markdown 檔案
 - 提示詞獨立配置，支援動態調整分析策略
-- **MVP 使用 Gemini Agent**：透過 `gemini-run.sh` wrapper 腳本呼叫
+- **MVP 使用 Gemini CLI**：直接呼叫 `gemini` 命令行工具
   
   ⚠️ **重要限制**：Gemini Agent 有沙盒限制，只能存取執行目錄下的檔案。
   因此必須先將轉錄稿複製到專案目錄內（如 `temp/`），再讓 Gemini 讀取。
@@ -188,34 +188,43 @@
   參考實作流程：
   ```python
   # 1. 將轉錄稿複製到沙盒可存取位置
-  temp_input = project_dir / "temp" / transcript.path.name
-  shutil.copy2(transcript.path, temp_input)
+  transcript_path = project_dir / "temp" / f"{transcript.channel}_{hash}.md"
+  shutil.copy2(transcript.path, transcript_path)
   
   # 2. 從 prompts/analysis/{category}.md 載入 template
   template = load_prompt_template(template_name)
   
-  # 3. 構建 prompt（使用相對路徑）
-  prompt = template.format(
+  # 3. 構建完整 prompt（使用相對路徑引用 transcript）
+  prompt_content = template.format(
       channel=transcript.metadata.channel,
       title=transcript.metadata.title,
-      file_path=temp_input.name  # 使用相對路徑
+      file_path=transcript_path.name  # 使用相對路徑
   )
   
-  # 4. 執行 Gemini 分析
+  # 4. 將 prompt 寫入 temp 檔案（避免 shell 轉義問題）
+  prompt_path = project_dir / "temp" / f"prompt_task_{transcript.channel}_{hash}.md"
+  prompt_path.write_text(prompt_content)
+  
+  # 5. 執行 Gemini 分析（使用簡短的 meta prompt）
+  meta_prompt = f"請讀取 {prompt_path.name} 並按照其中指示分析 {transcript_path.name}，然後輸出 JSON 結果"
   subprocess.run([
-      "bash", "/path/to/gemini-run.sh",
-      prompt, output_file
+      "gemini",
+      "-p", meta_prompt,           # 簡短的 meta prompt
+      "-o", "json",                # JSON 輸出
+      "--approval-mode", "plan"    # 唯讀模式
   ], cwd=str(project_dir), timeout=300)
   
-  # 5. 提取結果並清理臨時檔案
+  # 6. 提取結果並清理臨時檔案
   result = extract_result(output_file)
-  temp_input.unlink()
+  transcript_path.unlink()
+  prompt_path.unlink()
   ```
   
-  為何需要複製檔案：
-  - Shell 命令有字元數上限（ARG_MAX），無法將長轉錄稿直接塞進 prompt
-  - Gemini 沙盒限制只能讀取執行目錄下的檔案
-  - 原始轉錄稿位於 `youtube_transcriber/output/`（沙盒外）
+  為何使用兩個 temp 檔案：
+  - **避免 shell 轉義風險**：完整 prompt 可能包含反引號、引號等特殊字元
+  - **命令長度限制**：Shell 有 ARG_MAX 限制，無法將長轉錄稿直接塞進參數
+  - **職責分離**：prompt（指令）與 transcript（資料）分開，便於除錯
+  - **Gemini 沙盒限制**：只能讀取執行目錄下的檔案，需將檔案複製到 temp/
   
   產出結果：
   - 從輸出檔案提取 JSON/YAML 格式的分析結果
@@ -781,9 +790,11 @@ channels:
 - 最大重試次數：3 次
 - 退避策略：指數退避（1s → 2s → 4s）
 - Timeout：300 秒（參考 enhance_with_gemini.py 設定）
-- **Gemini Agent 呼叫**：透過 `gemini-run.sh` wrapper 執行：
+- **Gemini CLI 呼叫**：直接使用 `gemini` 命令：
   ```bash
-  bash /path/to/gemini-run.sh "prompt" "output.md"
+  gemini -p "請讀取 prompt_task_xxx.md 並按照其中指示分析 transcript_xxx.md，然後輸出 JSON 結果" \
+         -o json \
+         --approval-mode plan
   ```
 - **內容傳遞**：在 prompt 中指定檔案路徑，由 Gemini 讀取（非 STDIN）
 - **Rate Limiting**：免費版 1000 calls/day，批次處理需加入延遲

@@ -302,10 +302,17 @@ YouTube Transcriber Output
 **命令範例**:
 ```bash
 # 正確：使用 -p 進入 headless 模式，plan 模式確保安全
-gemini -p "分析檔案 temp/Bankless_1234.md" -o json -m gemini-2.5-pro --approval-mode plan
+# 使用兩個 temp 檔案傳遞：prompt_task_xxx.md（指令）和 transcript_xxx.md（內容）
+gemini -p "請讀取 prompt_task_Bankless_7842.md 並按照其中指示分析 transcript_Bankless_7842.md，然後輸出 JSON 結果" \
+       -o json \
+       -m gemini-2.5-pro \
+       --approval-mode plan
 
 # 錯誤：缺少 -p，會進入互動模式！
 gemini "分析檔案 temp/Bankless_1234.md"
+
+# 錯誤：直接傳遞完整 prompt（有 shell 轉義風險）
+gemini -p "{完整的 prompt 內容...包含反引號和引號等}"
 ```
 
 **輸出解析範例**:

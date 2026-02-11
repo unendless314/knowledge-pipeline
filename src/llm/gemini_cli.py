@@ -63,6 +63,12 @@ class GeminiCLIProvider:
         """
         執行語意分析
         
+        使用兩個 temp 檔案傳遞給 Gemini：
+        1. prompt_task_xxx.md - 包含完整 prompt 任務說明
+        2. transcript_xxx.md - 包含轉錄稿內容
+        
+        Shell 只傳遞簡短的 meta prompt，避免特殊字元轉義問題。
+        
         Args:
             input_data: 標準化的轉錄輸入
             prompt_template: prompt 模板名稱（如 "crypto_tech", "ufo_research"）
@@ -77,30 +83,44 @@ class GeminiCLIProvider:
             LLMRateLimitError: 配額耗盡
         """
         # 使用 context manager 確保 temp 檔案被清理
-        with self._temp_transcript_file(input_data) as temp_path:
+        with self._temp_transcript_file(input_data) as transcript_path:
             # 載入並格式化 prompt
-            prompt = self.prompt_loader.format(
+            prompt_content = self.prompt_loader.format(
                 template_name=prompt_template,
                 input_data=input_data,
-                file_path=temp_path.name  # 關鍵：只給檔名！
+                file_path=transcript_path.name  # 關鍵：只給檔名！
             )
             
-            # 執行 Gemini（含重試邏輯）
-            raw_output = self._call_gemini_with_retry(prompt)
+            # 將 prompt 寫入 temp 檔案
+            prompt_path = self._write_prompt_file(prompt_content, input_data)
             
-            # 記錄對話（可選）
-            if output_path:
-                self._save_conversation(prompt, raw_output, output_path)
+            try:
+                # 使用簡短的 meta prompt，讓 Gemini 讀取 prompt 檔案
+                meta_prompt = (
+                    f"請讀取 {prompt_path.name} 並按照其中指示分析 "
+                    f"{transcript_path.name}，然後輸出 JSON 結果"
+                )
+                
+                # 執行 Gemini（含重試邏輯）
+                raw_output = self._call_gemini_with_retry(meta_prompt)
+                
+                # 記錄對話（可選）
+                if output_path:
+                    self._save_conversation(prompt_content, raw_output, output_path)
+                
+                # 解析結果
+                response = self.output_parser.extract_response(raw_output)
+                analysis_result = self.output_parser.parse_analysis_result(response)
+                
+                # 設定 provider 資訊
+                analysis_result.provider = self.provider_type.value
+                analysis_result.model = "gemini-2.0-flash"  # 預設模型
+                
+                return analysis_result
             
-            # 解析結果
-            response = self.output_parser.extract_response(raw_output)
-            analysis_result = self.output_parser.parse_analysis_result(response)
-            
-            # 設定 provider 資訊
-            analysis_result.provider = self.provider_type.value
-            analysis_result.model = "gemini-2.0-flash"  # 預設模型
-            
-            return analysis_result
+            finally:
+                # 清理 prompt temp 檔案
+                self._cleanup_temp_file(prompt_path)
     
     def health_check(self) -> bool:
         """
@@ -176,7 +196,41 @@ word_count: {input_data.word_count}
             except OSError:
                 pass
     
-    def _call_gemini_with_retry(self, prompt: str) -> str:
+    def _write_prompt_file(self, prompt_content: str, input_data: TranscriptInput) -> Path:
+        """
+        將 prompt 內容寫入 temp 檔案
+        
+        Args:
+            prompt_content: 格式化後的 prompt 內容
+            input_data: 轉錄輸入（用於產生唯一檔名）
+            
+        Returns:
+            Prompt 檔案路徑
+        """
+        # 產生唯一檔名（使用 hash 避免衝突）
+        content_hash = hash(prompt_content) % 10000
+        temp_name = f"prompt_task_{input_data.channel}_{content_hash}.md"
+        temp_path = self.temp_dir / temp_name
+        
+        # 寫入 prompt 內容
+        temp_path.write_text(prompt_content, encoding="utf-8")
+        
+        return temp_path
+    
+    def _cleanup_temp_file(self, temp_path: Path) -> None:
+        """
+        清理臨時檔案
+        
+        Args:
+            temp_path: 要清理的檔案路徑
+        """
+        try:
+            if temp_path.exists():
+                temp_path.unlink()
+        except OSError:
+            pass
+    
+    def _call_gemini_with_retry(self, meta_prompt: str) -> str:
         """
         執行 Gemini CLI（含指數退避重試）
         
@@ -184,7 +238,7 @@ word_count: {input_data.word_count}
         否則會進入互動模式，導致無法擷取輸出
         
         Args:
-            prompt: Prompt 字串
+            meta_prompt: 簡短的 meta prompt（引用 temp 檔案名稱）
             
         Returns:
             Gemini CLI 輸出
@@ -199,7 +253,7 @@ word_count: {input_data.word_count}
                 result = subprocess.run(
                     [
                         "gemini",
-                        "-p", prompt,                    # headless 模式（必要）
+                        "-p", meta_prompt,               # headless 模式（必要）
                         "-o", "json",                    # JSON 輸出（便於解析）
                         "--approval-mode", "plan"        # plan 模式（唯讀，最安全）
                     ],

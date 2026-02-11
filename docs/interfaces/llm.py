@@ -205,7 +205,7 @@ class LLMProvider(Protocol):
             output_path: 輸出記錄檔路徑（供除錯/審查，可選）
                 
                 若提供，Provider 應將完整對話記錄儲存至此路徑，
-                格式相容 gemini-run.sh:
+                使用 Markdown 格式：
                 ```
                 # LLM 對話記錄
                 ## Prompt
@@ -479,76 +479,86 @@ class GeminiCLIProvider:
     
     def analyze(self, input_data: TranscriptInput, prompt_template: str, 
                 output_path: Path | None = None) -> AnalysisResult:
-        # Step 1: 準備 temp 檔案（含錯誤處理）
-        temp_path = self._prepare_temp_file(input_data)
-        
-        try:
+        # Step 1: 準備 transcript temp 檔案
+        with self._temp_transcript_file(input_data) as transcript_path:
             # Step 2: 載入並格式化 prompt
-            prompt = self.prompt_loader.format(
+            prompt_content = self.prompt_loader.format(
                 template_name=prompt_template,
                 input_data=input_data,
-                file_path=temp_path.name  # 關鍵：只給檔名！
+                file_path=transcript_path.name  # 關鍵：只給檔名！
             )
             
-            # Step 3: 執行 Gemini（含重試邏輯）
-            raw_output = self._call_gemini_with_retry(prompt)
+            # Step 3: 將 prompt 寫入 temp 檔案（避免 shell 轉義問題）
+            prompt_path = self._write_prompt_file(prompt_content, input_data)
             
-            # Step 4: 記錄對話（可選）
-            if output_path:
-                self._save_conversation(prompt, raw_output, output_path)
-            
-            # Step 5: 解析結果
-            analysis_result = self.output_parser.parse_analysis_result(raw_output)
-            analysis_result.provider = self.provider_type.value
-            analysis_result.model = "gemini-2.0-flash"  # 或從輸出偵測
-            
-            return analysis_result
-            
-        finally:
-            # Step 6: 清理（無論成功失敗）
-            self._cleanup_temp_file(temp_path)
+            try:
+                # Step 4: 使用簡短的 meta prompt 執行 Gemini
+                meta_prompt = (
+                    f"請讀取 {prompt_path.name} 並按照其中指示分析 "
+                    f"{transcript_path.name}，然後輸出 JSON 結果"
+                )
+                raw_output = self._call_gemini_with_retry(meta_prompt)
+                
+                # Step 5: 記錄對話（可選）
+                if output_path:
+                    self._save_conversation(prompt_content, raw_output, output_path)
+                
+                # Step 6: 解析結果
+                analysis_result = self.output_parser.parse_analysis_result(raw_output)
+                analysis_result.provider = self.provider_type.value
+                analysis_result.model = "gemini-2.0-flash"
+                
+                return analysis_result
+                
+            finally:
+                # Step 7: 清理 prompt temp 檔案
+                self._cleanup_temp_file(prompt_path)
 ```
 
-## 2. 長文本處理的關鍵實作
+## 2. 兩檔案傳遞機制（Prompt + Transcript）
+
+為避免 shell 特殊字元轉義問題，使用兩個獨立檔案傳遞給 Gemini：
 
 ```python
-def _prepare_temp_file(self, input_data: TranscriptInput) -> Path:
+def _write_prompt_file(self, prompt_content: str, input_data: TranscriptInput) -> Path:
     '''
-    核心：將內容寫入 temp/，讓 Gemini 透過檔案路徑讀取
-    絕對不能將內容直接傳入 shell 參數！
+    將 prompt 內容寫入 temp 檔案
+    
+    Args:
+        prompt_content: 格式化後的完整 prompt 內容
+        input_data: 轉錄輸入（用於產生唯一檔名）
+        
+    Returns:
+        Prompt 檔案路徑（位於 project_dir/temp/ 下）
     '''
-    temp_dir = self.project_dir / "temp"
-    temp_dir.mkdir(exist_ok=True)
+    content_hash = hash(prompt_content) % 10000
+    temp_name = f"prompt_task_{input_data.channel}_{content_hash}.md"
+    temp_path = self.temp_dir / temp_name
     
-    # 產生唯一檔名
-    content_hash = hash(input_data.content[:100]) % 10000
-    temp_name = f"{input_data.channel}_{content_hash}.md"
-    temp_path = temp_dir / temp_name
-    
-    # 寫入內容（含基本 frontmatter 供 Gemini 參考）
-    content = f"""---
-channel: {input_data.channel}
-title: {input_data.title}
-word_count: {input_data.word_count}
----
-
-{input_data.content}
-"""
-    temp_path.write_text(content, encoding="utf-8")
+    temp_path.write_text(prompt_content, encoding="utf-8")
     return temp_path
 
-def _call_gemini_with_retry(self, prompt: str) -> str:
+def _call_gemini_with_retry(self, meta_prompt: str) -> str:
     '''
     執行 Gemini CLI（含指數退避重試）
     
-    重要：必須使用 -p/--prompt 參數啟動 headless 模式
-    否則會進入互動模式，導致無法擷取輸出
+    重要改進：
+    - 不再將完整 prompt 傳入 shell 參數
+    - 只傳遞簡短的 meta prompt（引用 temp 檔案名稱）
+    - Gemini 會先讀取 prompt_task_xxx.md，再依照指示讀取 transcript_xxx.md
+    
+    Args:
+        meta_prompt: 簡短的 meta prompt（如「請讀取 prompt_task_xxx.md...」）
     '''
     for attempt in range(1, self.max_retries + 1):
         try:
-            # 關鍵：使用 -p 進入 non-interactive (headless) 模式
             result = subprocess.run(
-                ["gemini", "-p", prompt],
+                [
+                    "gemini",
+                    "-p", meta_prompt,           # 簡短，無特殊字元風險
+                    "-o", "json",                # JSON 輸出
+                    "--approval-mode", "plan"    # 唯讀模式
+                ],
                 capture_output=True,
                 text=True,
                 timeout=self.timeout,
@@ -584,8 +594,28 @@ def _cleanup_temp_file(self, temp_path: Path) -> None:
         if temp_path.exists():
             temp_path.unlink()
     except OSError:
-        # 記錄警告但不中斷流程
-        logger.warning(f"Failed to cleanup temp file: {temp_path}")
+        pass
+```
+
+### 為什麼使用兩個檔案？
+
+| 方案 | 優點 | 缺點 |
+|-----|------|------|
+| **單一檔案（合併）** | Gemini 只讀一次 | 需要修改 prompt 模板；分隔線可能與內容衝突 |
+| **兩個檔案（採用）** | 職責分離；prompt 模板無需修改；除錯時可單獨查看 | Gemini 讀兩次（可忽略） |
+
+**temp/ 目錄結構：**
+```
+temp/
+├── prompt_task_Bankless_7842.md   ← 完整 prompt 任務說明（4KB）
+└── transcript_Bankless_7842.md    ← 轉錄稿內容（100KB+）
+```
+
+**Shell 指令：**
+```bash
+gemini -p "請讀取 prompt_task_Bankless_7842.md 並按照其中指示分析 transcript_Bankless_7842.md，然後輸出 JSON 結果" \
+       -o json \
+       --approval-mode plan
 ```
 
 ## 3. 使用 Context Manager 優雅處理
@@ -703,11 +733,35 @@ except LLMParseError as e:
 
 | 陷阱 | 錯誤示範 | 正確做法 |
 |------|----------|----------|
+| **直接傳遞長內容到 shell** | `subprocess.run(["gemini", "-p", long_prompt])` | 寫入 temp 檔案，傳遞簡短引用 |
 | 直接傳遞內容 | `subprocess.run(["gemini", content[:50000]])` | 寫入 temp 檔案，傳遞路徑 |
 | 忽略 cwd | `subprocess.run([...])` 預設 cwd | 明確指定 `cwd=str(project_dir)` |
 | 忘記清理 | 沒有 try/finally | 使用 context manager 或 try/finally |
 | 錯誤處理不完整 | 只 catch Exception | 區分 LLMRateLimitError、LLMTimeoutError |
 | 檔名衝突 | 固定檔名 `temp/input.md` | 使用 hash 產生唯一檔名 |
+
+### ⚠️ Shell 轉義風險（重要！）
+
+**絕對不要將完整 prompt 直接傳入 shell 參數：**
+
+```python
+# ❌ 錯誤：prompt 中的反引號、引號、換行可能破壞 shell 命令
+subprocess.run(
+    ["gemini", "-p", prompt],  # prompt 可能包含 `code`、"quotes"、\n
+# ✅ 正確：使用兩個 temp 檔案，shell 只傳簡短引用
+subprocess.run(
+    ["gemini", "-p", "請讀取 prompt_task_xxx.md 並按照其中指示分析 transcript_xxx.md"],
+```
+
+**原因：**
+- Markdown 中的反引號 `` ` `` 在 shell 中有特殊意義
+- 多行字串可能導致參數解析錯誤
+- 難以預測的特殊字元組合
+
+**解決方案：**
+1. 將完整 prompt 寫入 `temp/prompt_task_{hash}.md`
+2. Shell 參數只傳遞簡短的 meta prompt（引用檔案名稱）
+3. Gemini 會依照 meta prompt 的指示讀取並執行任務
 
 ## 7. Gemini CLI 選項參考
 

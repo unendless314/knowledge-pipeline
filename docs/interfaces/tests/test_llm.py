@@ -96,7 +96,7 @@ class TestGeminiCLIProvider(unittest.TestCase):
     def test_save_conversation_to_output_path(self):
         """測試儲存對話記錄"""
         # TODO: 實作後啟用
-        # 驗證輸出格式相容 gemini-run.sh
+        # 驗證輸出格式（Markdown 格式，含 Prompt 和 Response 區塊）
         pass
     
     def test_health_check(self):
@@ -159,7 +159,7 @@ class TestOutputParser(unittest.TestCase):
     def test_extract_response_from_markdown(self):
         """測試從 Markdown 提取 Response"""
         # TODO: 實作後啟用
-        # 輸入 gemini-run.sh 格式
+        # 輸入 Markdown 對話記錄格式
         # 輸出 Response 區塊
         pass
     
