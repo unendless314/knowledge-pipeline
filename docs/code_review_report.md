@@ -126,7 +126,50 @@ def trigger_embedding(self, source_id: str) -> None:
 
 ---
 
-### 🟢 問題 4：SourceBuilder 的 embed 設定為 False
+### 🔴 問題 4：未處理帶有雙引號的 YAML frontmatter（Edge Case）
+
+**發現日期**: 2026-02-12  
+**測試指令**: `python3 run.py discover`
+
+**問題描述**:
+執行 Discovery 時發現 5 個檔案解析失敗（271 個檔案中 266 個成功）：
+```
+掃描檔案: 271
+解析成功: 266
+解析失敗: 5
+```
+
+**失敗檔案列表**:
+1. `Real_Vision/2026-02-10_A New "Magnificent Seven" of Web3.md`
+2. `Real_Vision/20260205_We're "So Early Still" With Crypto.md`
+3. `Future_Forecasters/20260204_"Major Financial Change Is Coming".md`
+4. `Future_Forecasters/2026-02-10_"CERN is Manipulating People".md`
+5. `Your_Monk_Haku/20260204_A Monk's Guide to "Locking In".md`
+
+**錯誤原因**:
+YouTube Transcriber 生成的 frontmatter 中，`title` 欄位包含未轉義的雙引號：
+```yaml
+title: "A New "Magnificent Seven" of Web3? ft. Mike Cagney"
+             ^ 這裡的雙引號導致 YAML 語法錯誤
+```
+
+YAML 規範中，若在雙引號字串內要使用雙引號，必須使用 `\"` 轉義，或使用單引號包裹整個字串。
+
+**這是誰的問題？**:
+- 這是 **YouTube Transcriber** 生成 frontmatter 的問題
+- 不是 knowledge-pipeline 的 bug
+- 但我們可以考慮增加容錯機制
+
+**建議**:
+1. **短期**: 忽略這些檔案（98% 成功率可接受）
+2. **中期**: 在 YouTube Transcriber 修正 frontmatter 生成，正確轉義特殊字元
+3. **長期**: 在 knowledge-pipeline 增加容錯機制，例如：
+   - 嘗試用單引號重新解析
+   - 或使用 `yaml.safe_load` 的錯誤處理來定位並修復問題欄位
+
+---
+
+### 🟢 問題 5：SourceBuilder 的 embed 設定為 False
 
 **位置**: `src/uploader.py` - `SourceBuilder.build_create_request()`
 
@@ -194,6 +237,7 @@ python run.py run --template default -v
 | 錯誤處理/重試 | ✅ 完整 | FixedDelayRetry 機制到位 |
 | 主題/Notebook 映射 | ⚠️ 需修正 | 解析邏輯簡化，未使用 TopicResolver |
 | API 端點正確性 | ⚠️ 需驗證 | 建議對照 Open Notebook API 文件 |
+| YAML 特殊字元處理 | ⚠️ Edge Case | 5 個檔案因雙引號導致解析失敗，需上游修正或增加容錯 |
 
 **整體評估**: 專案已達可測試狀態，建議先進行乾跑測試驗證 API 端點，再根據結果調整 `_resolve_notebook()` 邏輯。
 
