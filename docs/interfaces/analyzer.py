@@ -141,7 +141,7 @@ class AnalyzerService(Protocol):
         ...
 
         # === 處理中繼資料 ===
-        analyzed_by: "gemini_cli/gemini-2.0-flash"
+        analyzed_by: "gemini_cli/gemini-2.5-pro"
         analyzed_at: "2026-02-11T10:00:00"
         pipeline_version: "1.0.0"
         ---
@@ -452,7 +452,7 @@ def _build_analyzed_markdown(
       - "[[x402]]"
 
     # === 處理中繼資料 ===
-    analyzed_by: "gemini_cli/gemini-2.0-flash"
+    analyzed_by: "gemini_cli/gemini-2.5-pro"
     analyzed_at: "2026-02-11T10:00:00+08:00"
     pipeline_version: "1.0.0"
     source_path: "Bankless/2026-02/..."

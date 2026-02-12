@@ -267,7 +267,7 @@ temporal_relevance: "..."
 key_entities: [...]
 
 # 處理中繼資料
-analyzed_by: "gemini-2.0-flash"
+analyzed_by: "gemini-2.5-pro"
 analyzed_at: "2026-02-10T08:30:00+08:00"
 ---
 
@@ -594,7 +594,7 @@ key_entities:
   - "[[Ethereum]]"
 
 # === 處理中繼資料 ===
-analyzed_by: "gemini-2.0-flash"
+analyzed_by: "gemini-2.5-pro"
 analyzed_at: "2026-02-10T06:35:00+08:00"
 pipeline_version: "1.0.0"
 ---
@@ -690,7 +690,7 @@ channels:
 
 | 欄位 | 類型 | 說明 | 範例 |
 |------|------|------|------|
-| `analyzed_by` | string | LLM Provider 與模型 | `"gemini-2.0-flash"` |
+| `analyzed_by` | string | LLM Provider 與模型 | `"gemini-2.5-pro"` |
 | `analyzed_at` | datetime | 分析時間 (ISO 8601) | `"2026-02-10T06:35:00+08:00"` |
 | `pipeline_version` | string | Pipeline 版本 | `"1.0.0"` |
 | `source_path` | string | 原始檔案路徑 | `"Bankless/2026-02/...md"` |

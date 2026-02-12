@@ -37,6 +37,7 @@ class GeminiCLIProvider:
     provider_type: ProviderType = field(default=ProviderType.GEMINI_CLI)
     project_dir: Path = field(default_factory=lambda: Path.cwd())
     temp_dir: Path | None = None
+    model: str = "gemini-2.5-pro"  # 預設模型，可透過 -m 參數指定
     timeout: int = 300
     max_retries: int = 3
     initial_retry_delay: int = 3
@@ -114,7 +115,7 @@ class GeminiCLIProvider:
                 
                 # 設定 provider 資訊
                 analysis_result.provider = self.provider_type.value
-                analysis_result.model = "gemini-2.0-flash"  # 預設模型
+                analysis_result.model = "gemini-2.5-pro"  # 預設模型
                 
                 return analysis_result
             
@@ -149,7 +150,7 @@ class GeminiCLIProvider:
         """
         return {
             "name": "Gemini",
-            "version": "2.0-flash",
+            "version": self.model,
             "capabilities": [
                 "text_analysis",
                 "semantic_understanding",
@@ -258,6 +259,7 @@ word_count: {input_data.word_count}
                 result = subprocess.run(
                     [
                         "gemini",
+                        "-m", self.model,                # 指定模型（如 gemini-2.5-pro）
                         "-p", meta_prompt,               # headless 模式（必要）
                         # 注意：移除 --approval-mode，讓 Gemini CLI 使用預設行為
                     ],

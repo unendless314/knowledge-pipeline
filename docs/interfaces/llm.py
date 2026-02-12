@@ -506,7 +506,7 @@ class GeminiCLIProvider:
                 # Step 6: 解析結果
                 analysis_result = self.output_parser.parse_analysis_result(raw_output)
                 analysis_result.provider = self.provider_type.value
-                analysis_result.model = "gemini-2.0-flash"
+                analysis_result.model = "gemini-2.5-pro"
                 
                 return analysis_result
                 
@@ -555,6 +555,7 @@ def _call_gemini_with_retry(self, meta_prompt: str) -> str:
             result = subprocess.run(
                 [
                     "gemini",
+                    "-m", "gemini-2.5-pro",      # 指定模型
                     "-p", meta_prompt,           # 簡短，無特殊字元風險
                     "-o", "json",                # JSON 輸出
                     "--approval-mode", "plan"    # 唯讀模式

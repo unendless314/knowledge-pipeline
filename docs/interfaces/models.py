@@ -152,7 +152,7 @@ class ProcessingMetadata:
     此處用於統一管理，格式為 "{provider}/{model}"
     
     Attributes:
-        analyzed_by: LLM Provider 與模型名稱（例: "gemini_cli/gemini-2.0-flash"）
+        analyzed_by: LLM Provider 與模型名稱（例: "gemini_cli/gemini-2.5-pro"）
         analyzed_at: 分析時間
         pipeline_version: Pipeline 版本
         source_path: 原始檔案路徑

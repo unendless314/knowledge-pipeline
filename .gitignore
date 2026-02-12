@@ -41,7 +41,7 @@ logs/*.log
 intermediate/pending/*
 intermediate/approved/*
 intermediate/rejected/*
-temp/*
+# temp/*  # 註解掉以允許 Gemini CLI 讀取 temp/ 檔案
 !**/.gitkeep
 
 # Configuration with secrets
