@@ -250,12 +250,16 @@ word_count: {input_data.word_count}
         """
         for attempt in range(1, self.max_retries + 1):
             try:
+                # 注意：不使用 -o json 參數，直接使用純文字輸出
+                # 原因：簡化解析流程，避免多層 JSON 包裝
+                # 若未來需要 token 使用量等統計資料，可改為：
+                #   ["gemini", "-p", meta_prompt, "-o", "json"]
+                # 並確保 OutputParser.extract_response() 支援 JSON 格式解析
                 result = subprocess.run(
                     [
                         "gemini",
                         "-p", meta_prompt,               # headless 模式（必要）
-                        "-o", "json",                    # JSON 輸出（便於解析）
-                        "--approval-mode", "plan"        # plan 模式（唯讀，最安全）
+                        # 注意：移除 --approval-mode，讓 Gemini CLI 使用預設行為
                     ],
                     capture_output=True,
                     text=True,

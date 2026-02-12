@@ -157,10 +157,15 @@ class OutputParser:
         支援格式：
         1. JSON 格式（gemini -o json）：
            {"response": "實際內容", "stats": {...}}
+           
+           使用時機：需要監控 token 使用量、API 延遲等統計資料
+           啟用方式：在 gemini_cli.py 中加入 "-o", "json" 參數
         
-        2. 文字格式：
-           ## Response
-           {實際回應內容}
+        2. 純文字格式（預設）：
+           LLM 的直接回覆內容
+           
+           使用時機：簡單使用，不需要統計資料（目前採用）
+           優點：解析流程簡單，減少一層 JSON 包裝
         
         Args:
             output: 完整輸出
@@ -171,6 +176,7 @@ class OutputParser:
         import json
         
         # 策略 1: 嘗試解析為 JSON（gemini -o json 格式）
+        # 若未來啟用 -o json，此處會自動提取 response 欄位
         try:
             data = json.loads(output.strip())
             if "response" in data:
@@ -178,7 +184,8 @@ class OutputParser:
         except json.JSONDecodeError:
             pass
         
-        # 策略 2: 尋找 ## Response 標記（文字格式）
+        # 策略 2: 純文字格式（預設使用）
+        # 當不使用 -o json 時，output 就是 LLM 的直接回覆
         lines = output.split("\n")
         in_response = False
         response_lines = []
