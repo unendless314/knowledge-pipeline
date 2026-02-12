@@ -155,13 +155,12 @@ class OutputParser:
         從完整輸出提取 Response 區塊
         
         支援格式：
-        ```
-        # Gemini Agent 對話記錄
-        ## Prompt
-        ...
-        ## Response
-        {實際回應內容}
-        ```
+        1. JSON 格式（gemini -o json）：
+           {"response": "實際內容", "stats": {...}}
+        
+        2. 文字格式：
+           ## Response
+           {實際回應內容}
         
         Args:
             output: 完整輸出
@@ -169,6 +168,17 @@ class OutputParser:
         Returns:
             Response 區塊內容
         """
+        import json
+        
+        # 策略 1: 嘗試解析為 JSON（gemini -o json 格式）
+        try:
+            data = json.loads(output.strip())
+            if "response" in data:
+                return data["response"].strip()
+        except json.JSONDecodeError:
+            pass
+        
+        # 策略 2: 尋找 ## Response 標記（文字格式）
         lines = output.split("\n")
         in_response = False
         response_lines = []
