@@ -113,7 +113,8 @@ class KnowledgePipeline:
     def run_discovery(
         self,
         min_word_count: int = 100,
-        channel_whitelist: list[str] | None = None
+        channel_whitelist: list[str] | None = None,
+        channel: str | None = None
     ) -> int:
         """
         執行發現階段
@@ -121,6 +122,7 @@ class KnowledgePipeline:
         Args:
             min_word_count: 最小字數限制
             channel_whitelist: 頻道白名單
+            channel: 指定單一頻道（優先於白名單）
             
         Returns:
             發現的檔案數量
@@ -136,10 +138,14 @@ class KnowledgePipeline:
         
         # 執行發現
         transcriber_output = Path(self.config.transcriber_output)
+        
+        # 如果指定了單一頻道，使用它作為白名單
+        effective_whitelist = [channel] if channel else channel_whitelist
+        
         transcripts = self.discovery.discover(
             root_dir=transcriber_output,
             min_word_count=min_word_count,
-            channel_whitelist=channel_whitelist
+            channel_whitelist=effective_whitelist
         )
         
         # 輸出統計
@@ -157,7 +163,8 @@ class KnowledgePipeline:
     def run_analysis(
         self,
         prompt_template: str = "default",
-        batch_size: int = 10
+        batch_size: int = 10,
+        channel: str | None = None
     ) -> int:
         """
         執行分析階段
@@ -165,6 +172,7 @@ class KnowledgePipeline:
         Args:
             prompt_template: Prompt 模板名稱
             batch_size: 批次大小
+            channel: 指定單一頻道
             
         Returns:
             分析的檔案數量
@@ -176,9 +184,11 @@ class KnowledgePipeline:
         
         # 再次執行發現（取得待處理檔案）
         transcriber_output = Path(self.config.transcriber_output)
+        effective_whitelist = [channel] if channel else None
         transcripts = self.discovery.discover(
             root_dir=transcriber_output,
-            min_word_count=100
+            min_word_count=100,
+            channel_whitelist=effective_whitelist
         )
         
         if not transcripts:
@@ -301,7 +311,8 @@ class KnowledgePipeline:
     def run_full_pipeline(
         self,
         prompt_template: str = "default",
-        dry_run: bool = False
+        dry_run: bool = False,
+        channel: str | None = None
     ) -> dict:
         """
         執行完整 Pipeline
@@ -309,6 +320,7 @@ class KnowledgePipeline:
         Args:
             prompt_template: Prompt 模板名稱
             dry_run: 僅模擬不上傳
+            channel: 指定單一頻道
             
         Returns:
             執行結果統計
@@ -320,14 +332,14 @@ class KnowledgePipeline:
         }
         
         # Discovery
-        results["discovered"] = self.run_discovery()
+        results["discovered"] = self.run_discovery(channel=channel)
         
         if results["discovered"] == 0:
             self.logger.info("沒有待處理的檔案，結束流程")
             return results
         
         # Analysis
-        results["analyzed"] = self.run_analysis(prompt_template)
+        results["analyzed"] = self.run_analysis(prompt_template, channel=channel)
         
         if results["analyzed"] == 0:
             self.logger.info("沒有分析成功的檔案，跳過上傳")
@@ -445,6 +457,12 @@ def create_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="測試模式，不上傳"
     )
+    run_parser.add_argument(
+        "--channel",
+        type=str,
+        default=None,
+        help="只處理指定頻道（例如: Ross_Coulthart）"
+    )
     
     # discover 命令
     discover_parser = subparsers.add_parser(
@@ -456,6 +474,12 @@ def create_parser() -> argparse.ArgumentParser:
         type=int,
         default=100,
         help="最小字數限制 (預設: 100)"
+    )
+    discover_parser.add_argument(
+        "--channel",
+        type=str,
+        default=None,
+        help="只處理指定頻道（例如: Ross_Coulthart）"
     )
     
     # analyze 命令
@@ -533,7 +557,8 @@ def main(args: Sequence[str] | None = None) -> int:
         if parsed_args.command == "run":
             results = pipeline.run_full_pipeline(
                 prompt_template=parsed_args.template,
-                dry_run=parsed_args.dry_run
+                dry_run=parsed_args.dry_run,
+                channel=parsed_args.channel
             )
             logger.info("")
             logger.info("=" * 60)
@@ -544,7 +569,10 @@ def main(args: Sequence[str] | None = None) -> int:
             logger.info("=" * 60)
         
         elif parsed_args.command == "discover":
-            count = pipeline.run_discovery(min_word_count=parsed_args.min_words)
+            count = pipeline.run_discovery(
+                min_word_count=parsed_args.min_words,
+                channel=parsed_args.channel
+            )
             logger.info(f"發現 {count} 個待處理檔案")
         
         elif parsed_args.command == "analyze":
