@@ -430,7 +430,7 @@ class OpenNotebookClient:
         """
         觸發 Source 嵌入 (Embedding)
         
-        呼叫 POST /api/embed (或對應端點)
+        呼叫 POST /api/embed
         
         務必在 Topics 更新完成後呼叫，確保索引包含最新的 Metadata。
         
@@ -441,16 +441,23 @@ class OpenNotebookClient:
             APIError: API 呼叫失敗
             SourceNotFoundError: Source 不存在
         """
-        # 處理 source_id 格式
-        if source_id.startswith("source:"):
-            source_id = source_id[7:]
+        # 確保 source_id 有前綴
+        if not source_id.startswith("source:"):
+            source_id = f"source:{source_id}"
         
-        # 嘗試呼叫嵌入端點
+        # 呼叫正確的嵌入端點
         try:
-            self._make_request("POST", f"/api/sources/{source_id}/embed")
-        except APIError:
-            # 如果端點不存在，可能是自動觸發，忽略錯誤
-            pass
+            self._make_request("POST", "/api/embed", json={
+                "item_id": source_id,
+                "item_type": "source",
+                "async_processing": False
+            })
+        except APIError as e:
+            if e.status_code == 404:
+                # 端點不存在，可能是舊版本，忽略錯誤
+                pass
+            else:
+                raise  # 其他錯誤（500, 401 等）應該拋出
 
 
 # ============================================================================

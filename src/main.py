@@ -342,7 +342,10 @@ class KnowledgePipeline:
         """
         解析 Notebook 名稱
         
-        根據 suggested_topic 和配置決定目標 Notebook。
+        邏輯：
+        1. LLM 回答有效的 topic ID → 查表對應 Notebook
+        2. LLM 回答 "unknown" → Unclassified Notebook
+        3. LLM 無回答/無效值 → 頻道 fallback
         
         Args:
             analyzed: 分析結果
@@ -350,14 +353,31 @@ class KnowledgePipeline:
         Returns:
             Notebook 名稱
         """
+        from src.config import TopicResolver, load_config
+        
+        # 載入配置
+        _, topics_config, channels_config = load_config()
+        resolver = TopicResolver()
+        
         suggested = analyzed.analysis.suggested_topic
+        channel = analyzed.original.channel
         
-        # 這裡可以根據配置映射 topic 到 notebook
-        # 簡化實作：使用 suggested_topic 或頻道名稱
-        if suggested:
-            return suggested
+        # 情況 1：LLM 回答有效的 topic ID
+        if suggested and suggested in topics_config and suggested != "unknown":
+            return resolver.get_notebook_for_topic(suggested, topics_config)
         
-        return analyzed.original.channel
+        # 情況 2：LLM 回答 "unknown"
+        if suggested == "unknown":
+            return resolver.get_notebook_for_topic("unknown", topics_config)
+        
+        # 情況 3：LLM 無回答或無效值 → 頻道 fallback
+        topic_id = resolver.resolve_topic(
+            channel=channel,
+            suggested_topic=None,  # 強制使用頻道預設
+            topics_config=topics_config,
+            channels_config=channels_config
+        )
+        return resolver.get_notebook_for_topic(topic_id, topics_config)
 
 
 # ============================================================================
