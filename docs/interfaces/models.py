@@ -155,7 +155,7 @@ class ProcessingMetadata:
         analyzed_by: LLM Provider 與模型名稱（例: "gemini_cli/gemini-2.5-pro"）
         analyzed_at: 分析時間
         pipeline_version: Pipeline 版本
-        source_path: 原始檔案路徑
+        source_path: 上游原始檔案路徑（YouTube Transcriber 輸出，非分析後檔案）
     """
     analyzed_by: str
     analyzed_at: datetime

@@ -361,8 +361,8 @@ class KnowledgePipeline:
                     uploaded_count += 1
                     continue
                 
-                # 執行上傳
-                source_id = self.uploader.upload(analyzed, notebook_name)
+                # 執行上傳（傳遞檔案路徑以讀取分析後的內容）
+                source_id = self.uploader.upload(analyzed, notebook_name, file_path)
                 
                 # 更新檔案狀態
                 intermediate_dir = Path(self.config.intermediate)

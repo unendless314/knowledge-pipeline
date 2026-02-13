@@ -329,7 +329,8 @@ class OpenNotebookClient:
         return SourceCreateResponse(
             id=result.get("id", ""),
             title=result.get("title", ""),
-            created_at=result.get("created_at", "")
+            content=result.get("full_text", ""),
+            created_at=result.get("created", "")
         )
     
     def update_source_topics(
@@ -355,9 +356,10 @@ class OpenNotebookClient:
         """
         data = {"topics": request.topics}
         
-        # 處理 source_id 格式
-        if source_id.startswith("source:"):
-            source_id = source_id[7:]  # 移除 "source:" 前綴
+        # API 需要完整 ID (含 source: 前綴)
+        # 確保 source_id 有前綴
+        if not source_id.startswith("source:"):
+            source_id = f"source:{source_id}"
         
         self._make_request("PUT", f"/api/sources/{source_id}", json=data)
     
@@ -372,20 +374,20 @@ class OpenNotebookClient:
         呼叫 POST /api/notebooks/{id}/sources/{source_id}
         
         Args:
-            notebook_id: Notebook ID
-            source_id: Source ID
+            notebook_id: Notebook ID（格式: "notebook:xxxxx"）
+            source_id: Source ID（格式: "source:xxxxx"）
             
         Raises:
             APIError: API 呼叫失敗
             NotebookNotFoundError: Notebook 不存在
             SourceNotFoundError: Source 不存在
         """
-        # 處理 ID 格式
-        if source_id.startswith("source:"):
-            source_id = source_id[7:]
+        # API 需要完整 ID (含前綴)
+        if not source_id.startswith("source:"):
+            source_id = f"source:{source_id}"
         
-        if notebook_id.startswith("notebook:"):
-            notebook_id = notebook_id[9:]
+        if not notebook_id.startswith("notebook:"):
+            notebook_id = f"notebook:{notebook_id}"
         
         self._make_request(
             "POST",
@@ -407,7 +409,12 @@ class OpenNotebookClient:
         try:
             # 嘗試取得 Notebook 列表
             response = self._make_request("GET", "/api/notebooks")
-            notebooks = response.get("notebooks", [])
+            
+            # API 直接回傳 list，不是 dict
+            if isinstance(response, list):
+                notebooks = response
+            else:
+                notebooks = response.get("notebooks", [])
             
             # 尋找是否存在
             for notebook in notebooks:
@@ -473,13 +480,15 @@ class SourceBuilder:
     
     def build_create_request(
         self,
-        analyzed: AnalyzedTranscript
+        analyzed: AnalyzedTranscript,
+        file_path: Path | None = None
     ) -> SourceCreateRequest:
         """
         建構建立 Source 請求
         
         Args:
             analyzed: 分析完成的轉錄資料
+            file_path: 分析後檔案路徑（若提供，從此檔案讀取內容）
             
         Returns:
             SourceCreateRequest
@@ -487,7 +496,7 @@ class SourceBuilder:
         return SourceCreateRequest(
             type="text",
             title=self.build_title(analyzed),
-            content=self.build_content(analyzed),
+            content=self.build_content(analyzed, file_path),
             embed=False  # 稍後手動觸發
         )
     
@@ -530,7 +539,7 @@ class SourceBuilder:
         published_at = original.published_at.isoformat()
         return f"{original.channel} | {original.title} | {published_at}"
     
-    def build_content(self, analyzed: AnalyzedTranscript) -> str:
+    def build_content(self, analyzed: AnalyzedTranscript, file_path: Path | None = None) -> str:
         """
         建構 Source 內容
         
@@ -538,6 +547,7 @@ class SourceBuilder:
         
         Args:
             analyzed: 分析完成的轉錄資料
+            file_path: 分析後檔案路徑（若提供，從此檔案讀取內容）
             
         Returns:
             內容字串
@@ -596,13 +606,13 @@ class SourceBuilder:
             default_flow_style=False
         )
         
-        # 讀取原始內容
-        source_path = Path(processing.source_path)
+        # 讀取內容 - 優先從提供的 file_path 讀取，否則回退到 source_path
         content = ""
-        if source_path.exists():
+        content_source = file_path if file_path else Path(processing.source_path)
+        if content_source and content_source.exists():
             try:
                 from src.discovery import FrontmatterParser
-                _, content = FrontmatterParser().parse_file(source_path)
+                _, content = FrontmatterParser().parse_file(content_source)
             except Exception:
                 pass
         
@@ -643,7 +653,8 @@ class UploaderService:
     def upload(
         self,
         analyzed: AnalyzedTranscript,
-        notebook_name: str
+        notebook_name: str,
+        file_path: Path | None = None
     ) -> str:
         """
         上傳單個分析結果
@@ -657,6 +668,7 @@ class UploaderService:
         Args:
             analyzed: 分析完成的轉錄資料
             notebook_name: 目標 Notebook 名稱
+            file_path: 分析後檔案路徑（用於讀取清理後的內容）
             
         Returns:
             Source ID（格式: "source:xxxxx"）
@@ -671,8 +683,8 @@ class UploaderService:
             # Step 1: 確保 Notebook 存在
             notebook_id = self.client.ensure_notebook_exists(notebook_name)
             
-            # Step 2: 建立 Source
-            create_request = self.builder.build_create_request(analyzed)
+            # Step 2: 建立 Source（從分析後檔案讀取內容）
+            create_request = self.builder.build_create_request(analyzed, file_path)
             create_response = self.client.create_source(create_request)
             source_id = create_response.id
             

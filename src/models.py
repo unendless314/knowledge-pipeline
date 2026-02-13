@@ -380,12 +380,12 @@ class SourceCreateResponse:
         id: Source ID（格式: "source:xxxxx"）
         title: 建立時的標題
         content: 建立時的內容
-        created_at: 建立時間
+        created_at: 建立時間（ISO 格式字串）
     """
     id: str
     title: str
     content: str
-    created_at: datetime
+    created_at: str
 
 
 @dataclass

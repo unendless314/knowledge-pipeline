@@ -206,6 +206,10 @@ YouTube Transcriber Output
 - 關聯 Notebook (`POST /notebooks/{id}/sources/{sid}`)
 - 錯誤重試機制（指數退避）
 
+⚠️ **重要實作細節**：
+`build_content()` 必須從分析後檔案（`*_analyzed.md`）讀取內容，而非 `processing.source_path`。
+`source_path` 指向原始轉錄檔案（可能含 timestamps），分析後檔案才是清理過的內容。
+
 #### 3.2.6 State (`state.py`)
 
 - 讀取/更新 Markdown frontmatter
@@ -416,11 +420,14 @@ Raw Markdown File
          │
          ▼ (Analyzer.analyze())
 ┌─────────────────┐
-│ AnalyzedMarkdown│  Merged frontmatter + content
+│ AnalyzedMarkdown│  Merged frontmatter + cleaned content
 │  (File Output)  │  Saved to intermediate/pending/
+│                 │  ⚠️ timestamps removed, headers injected
 └────────┬────────┘
          │
          ▼ (Uploader.upload())
+         │  ⚠️ Must read content from AnalyzedMarkdown file,
+         │     NOT from original source_path (which has raw timestamps)
 ┌─────────────────┐
 │   ON Source     │  id (source:xxxxx), title, content,
 │  (API Response) │  topics[], metadata{}
@@ -438,6 +445,17 @@ Raw Markdown File
 | API 5xx | 重試 3 次 → 標記 failed | `status: failed` |
 | YAML 解析錯誤 | 跳過檔案，記錄警告 | - |
 | 磁碟滿了 | 中止執行 | - |
+
+---
+
+## 7.1 常見實作陷阱
+
+| 陷阱 | 錯誤示範 | 正確做法 |
+|------|----------|----------|
+| 從原始檔案讀取內容上傳 | `build_content()` 使用 `processing.source_path` | 從 `*_analyzed.md` 檔案讀取清理後內容 |
+| API ID 格式錯誤 | `PUT /api/sources/{pure_id}` (無前綴) | `PUT /api/sources/source:xxxxx` (完整 ID) |
+| Notebooks API 回應格式 | `response.get("notebooks", [])` | 直接處理 list：`response if isinstance(response, list) else []` |
+| SourceCreateResponse 欄位 | `created_at`, `content` | `created`, `full_text` (依 API 實際回傳) |
 
 ---
 

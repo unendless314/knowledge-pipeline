@@ -7,6 +7,7 @@ Knowledge Pipeline - Open Notebook 上傳模組介面定義
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Protocol
 
 from models import (
@@ -150,13 +151,15 @@ class SourceBuilder(Protocol):
     
     def build_create_request(
         self,
-        analyzed: AnalyzedTranscript
+        analyzed: AnalyzedTranscript,
+        file_path: Path | None = None
     ) -> SourceCreateRequest:
         """
         建構建立 Source 請求
         
         Args:
             analyzed: 分析完成的轉錄資料
+            file_path: 分析後檔案路徑（若提供，從此檔案讀取內容而非原始檔案）
             
         Returns:
             SourceCreateRequest
@@ -192,14 +195,18 @@ class SourceBuilder(Protocol):
         """
         ...
     
-    def build_content(self, analyzed: AnalyzedTranscript) -> str:
+    def build_content(self, analyzed: AnalyzedTranscript, file_path: Path | None = None) -> str:
         """
         建構 Source 內容
         
         包含完整的 frontmatter YAML + 轉錄內容。
         
+        ⚠️ 重要：必須從分析後檔案（*_analyzed.md）讀取內容，而非原始檔案。
+        原始檔案（processing.source_path）可能含 timestamps 等未清理內容。
+        
         Args:
             analyzed: 分析完成的轉錄資料
+            file_path: 分析後檔案路徑（若提供，從此檔案讀取內容）
             
         Returns:
             內容字串
@@ -217,20 +224,22 @@ class UploaderService(Protocol):
     def upload(
         self,
         analyzed: AnalyzedTranscript,
-        notebook_name: str
+        notebook_name: str,
+        file_path: Path | None = None
     ) -> str:
         """
         上傳單個分析結果
         
         完整流程：
         1. 確保 Notebook 存在
-        2. 建立 Source
+        2. 建立 Source（從 file_path 讀取分析後內容）
         3. 更新 Topics
         4. 關聯 Notebook
         
         Args:
             analyzed: 分析完成的轉錄資料
             notebook_name: 目標 Notebook 名稱
+            file_path: 分析後檔案路徑（用於讀取清理後的內容）
             
         Returns:
             Source ID（格式: "source:xxxxx"）
