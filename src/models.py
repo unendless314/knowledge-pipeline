@@ -25,6 +25,7 @@ class ContentType(str, Enum):
     NEWS = "news"
     EDUCATIONAL = "educational"
     INTERVIEW = "interview"
+    NARRATIVE = "narrative"
 
 
 class ContentDensity(str, Enum):

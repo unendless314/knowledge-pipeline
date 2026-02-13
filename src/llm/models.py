@@ -105,7 +105,7 @@ class AnalysisResult:
     semantic_summary: str
     key_topics: list[str]
     suggested_topic: str
-    content_type: str  # technical_analysis, opinion_discussion, news, educational, interview
+    content_type: str  # technical_analysis, opinion_discussion, news, educational, interview, narrative
     content_density: str  # high, medium, low
     temporal_relevance: str  # evergreen, time_sensitive, news
     

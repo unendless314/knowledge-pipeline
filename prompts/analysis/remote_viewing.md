@@ -30,6 +30,7 @@ Please read the transcript and extract the following structured information:
     - `news` - **Updates & Events**: News about declassified documents, current prediction projects, or community events.
     - `educational` - **Training & History**: Teaching specific methods, history of military programs (SRI, Stargate), or terminology explanations.
     - `interview` - **Viewer/Researcher Dialogue**: Conversations with professional viewers, handlers, or intelligence officers.
+    - `narrative` - **Mission Stories/Consciousness Exploration**: First-person accounts of remote viewing missions, out-of-body experiences, or consciousness exploration journeys. Focus on the experiential narrative rather than technical protocol analysis.
 
 ### 4. content_density (enum string, required)
 - **Description**: Assessment of information density.

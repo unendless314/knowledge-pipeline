@@ -31,6 +31,7 @@ Please read the transcript and extract the following structured information:
     - `news` - **Tech News**: Updates on new framework releases, layoffs, or major industry shifts (e.g., AI breakthroughs).
     - `educational` - **Tutorials & Guides**: Resume writing guides, email/Excel tips, specific "How-to" tutorials.
     - `interview` - **Podcast/Chat**: Dialogues with other engineers, founders, or recruiters.
+    - `narrative` - **Career Journey/Story**: Personal stories of career transitions, startup founding journeys, engineering war stories, or "How I got into FAANG" narratives. Focus on the personal journey rather than advice.
 
 ### 4. content_density (enum string, required)
 - **Description**: Assessment of information density and depth.

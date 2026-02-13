@@ -31,6 +31,7 @@ Please read the transcript and extract the following structured information:
     - `news` - **Community/Energy Updates**: Astrological forecasts (e.g., "Full Moon Report"), global energy shifts, or community event announcements.
     - `educational` - **Concept Explainer**: Explanations of systems like Astrology, Human Design, Tarot, or metaphysical concepts.
     - `interview` - **Teacher Dialogue**: Satsangs, podcast interviews with spiritual teachers, healers, or authors.
+    - `narrative` - **Awakening/Healing Journey**: Personal stories of spiritual awakening, healing transformations, mystical experiences, or dark night of the soul accounts. Focus on the personal narrative and transformation arc.
 
 ### 4. content_density (enum string, required)
 - **Description**: Assessment of information density and depth.

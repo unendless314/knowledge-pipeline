@@ -31,8 +31,9 @@ Please read the transcript and extract the following structured information:
     - `technical_analysis` - **Market & Data**: Focuses on price charts, on-chain data indicators, trading strategies.
     - `opinion_discussion` - **Trends & Perspectives**: Includes industry narratives, macroeconomic analysis, policy interpretation, project potential assessment.
     - `news` - **Current Events**: Focuses on specific breaking news, funding news, exchange announcements.
-    - `educational` - **Education & Mechanisms**: Explanations of technical principles (e.g., ZK Proof), tutorials, historical reviews.
+    - `educational` - **Education & Mechanisms**: Explanations of technical principles (e.g., ZK Proof), tutorials, how-to guides.
     - `interview` - **Interview**: Conversations between two or more people.
+    - `narrative` - **Narrative/Case Study**: Story-driven content like exchange collapse stories, historical evolution of protocols, or founder journeys. Focus is on the story arc rather than technical analysis.
 
 ### 4. content_density (enum string, required)
 - **Description**: Assessment of information density and depth.

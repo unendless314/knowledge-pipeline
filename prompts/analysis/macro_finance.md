@@ -30,6 +30,7 @@ Please read the transcript and extract the following structured information:
     - `news` - **Event Driven**: Reaction to an immediate FOMC meeting, job report release, or geopolitical event.
     - `educational` - **Concept Explainer**: Explaining how bonds work, the mechanics of QE/QT, or history of financial crises.
     - `interview` - **Expert Dialogue**: Discussions between economists, fund managers, or policymakers.
+    - `narrative` - **Financial History/Case Study**: Story-driven accounts of financial crises, corporate rise-and-fall stories (e.g., "The Lehman Brothers Collapse"), or economic history narratives. Focus on the story arc rather than analysis.
 
 ### 4. content_density (enum string, required)
 - **Description**: Assessment of information density and depth.

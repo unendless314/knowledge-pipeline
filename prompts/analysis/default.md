@@ -29,8 +29,9 @@ Please read the transcript and extract the following structured information:
     - `technical_analysis` - **Detailed/Analytical**: Deep dives, specification breakdowns, data analysis, or complex logical arguments.
     - `opinion_discussion` - **Opinion/Narrative**: Vlogs, reviews, commentary, personal stories, or subjective discussions.
     - `news` - **News/Updates**: Reporting on recent events, announcements, or time-sensitive updates.
-    - `educational` - **Educational/How-To**: Tutorials, guides, documentaries, explainers, or historical recaps.
+    - `educational` - **Educational/How-To**: Tutorials, guides, explainers, or instructional content.
     - `interview` - **Conversation**: Interviews, podcasts, or dialogues between two or more people.
+    - `narrative` - **Narrative/Documentary/Case Study**: Story-driven content like historical recaps, business case studies, or true event reconstructions. Focus is on the story arc rather than analysis or instruction.
 
 ### 4. content_density (enum string, required)
 - **Description**: Assessment of information density.

@@ -31,6 +31,7 @@ Please read the transcript and extract the following structured information:
     - `news` - **Disclosure Updates**: Reporting on congressional hearings, new legislation (e.g., UAP Disclosure Act), or declassified documents.
     - `educational` - **History & Cases**: Documentaries or explainers on historical cases (e.g., Roswell, Rendlesham Forest, Phoenix Lights).
     - `interview` - **Witness/Whistleblower**: Interviews with experiencers, military witnesses, whistleblowers, or investigative journalists.
+    - `narrative` - **Encounter Stories/Experiencer Accounts**: First-person narratives of UFO sightings, abduction experiences, or contact stories. Focus on the personal experience and story arc rather than evidence analysis.
 
 ### 4. content_density (enum string, required)
 - **Description**: Assessment of information density and depth.
