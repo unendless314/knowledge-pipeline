@@ -1,107 +1,88 @@
-# 靈性成長內容分析提示詞
+# Spiritual & Consciousness Content Analysis Prompt
 
-請分析以下靈性/身心靈相關影片轉錄稿，並嚴格按照指定格式輸出 JSON。
+**Role Definition**: You are a spiritual consciousness researcher and holistic health analyst. You specialize in analyzing content related to spirituality, mindfulness, metaphysics, and personal growth, extracting core philosophical insights, practical techniques, and energetic dynamics.
 
-## 影片資訊
-- 頻道: {channel}
-- 標題: {title}
-- 檔案: {file_path}
+## Video Information
+- Channel: {channel}
+- Title: {title}
+- File: {file_path}
 
-## 分析任務
+## Analysis Task
 
-請閱讀轉錄稿後，提取以下結構化資訊：
+Please read the transcript and extract the following structured information:
 
-### 1. semantic_summary (字串，必填)
-- **說明**: 內容摘要，100-200 字中文摘要
-- **重點**: 概括教導的核心訊息、實踐方法和主要洞見
-- **範例**: "講者引導聽眾覺察當下的力量，透過呼吸練習和正念觀察，釋放對過去未來的執著，回到當下臨在..."
+### 1. semantic_summary (string, required)
+- **Description**: A 100-200 word essence-focused summary in English.
+- **Writing Requirements**:
+    - **Core Message**: Identify the central spiritual truth, philosophical argument, or healing modality presented.
+    - **Practical Application**: Highlight any specific practices (e.g., "breathwork techniques," "shadow work prompts") recommended.
+    - **Tone & Energy**: Capture the energetic quality of the content (e.g., "soothing and grounding," "provocative and awakening").
+    - **Context**: Connect the content to broader spiritual frameworks if applicable (e.g., Non-duality, New Age, Ancient Wisdom).
 
-### 2. key_topics (字串陣列，必填)
-- **說明**: 關鍵主題標籤，3-5 個
-- **格式**: 每個標籤 30 字元以內，簡潔明確
-- **範例**: ["當下覺察", "正念練習", "能量療癒", "意識轉化", "靈性覺醒"]
+### 2. key_topics (string array, required)
+- **Description**: 3-5 key topic tags.
+- **Example**: ["Mindfulness Meditation", "Law of Attraction", "Shadow Work", "Chakra Healing", "Astrology", "Non-duality"]
 
-### 3. content_type (列舉字串，必填)
-- **說明**: 內容類型分類
-- **可選值** (嚴格選一):
-  - `technical_analysis` - 技術分析（能量運作機制分析）
-  - `opinion_discussion` - 觀點討論（靈性觀點、哲學探討）
-  - `news` - 新聞報導（靈性社群動態）
-  - `educational` - 教育教學（教導、引導練習）
-  - `interview` - 訪談對話（導師對談、通靈傳訊）
+### 3. content_type (enum string, required)
+- **Description**: Content type classification (select the most appropriate one).
+- **Allowed Values** (Select exactly one):
+    - `technical_analysis` - **Practice/Technique**: Step-by-step guided meditations, yoga sequences, breathwork (Pranayama), or specific ritual instructions.
+    - `opinion_discussion` - **Philosophy/Perspective**: Discussions on the nature of reality, ethics, personal spiritual journeys, or channeling sessions.
+    - `news` - **Community/Energy Updates**: Astrological forecasts (e.g., "Full Moon Report"), global energy shifts, or community event announcements.
+    - `educational` - **Concept Explainer**: Explanations of systems like Astrology, Human Design, Tarot, or metaphysical concepts.
+    - `interview` - **Teacher Dialogue**: Satsangs, podcast interviews with spiritual teachers, healers, or authors.
 
-### 4. content_density (列舉字串，必填)
-- **說明**: 資訊密度評估
-- **可選值** (嚴格選一):
-  - `high` - 高密度（深度教導、多層次概念、實作指引）
-  - `medium` - 中等（平衡論述、有實質洞見）
-  - `low` - 低密度（閒聊、缺乏深度內容）
+### 4. content_density (enum string, required)
+- **Description**: Assessment of information density and depth.
+- **Allowed Values** (Select exactly one):
+    - `high` - **Esoteric/Advanced**: Deep dives into complex metaphysical systems (e.g., Kabbalah, Vedic texts), advanced alchemy, or detailed astrological analysis.
+    - `medium` - **Guided/Accessible**: Standard guided meditations, relatable spiritual advice, or introduction to concepts.
+    - `low` - **Inspirational/Light**: Simple affirmations, motivational snippets, or casual vlogs with spiritual themes.
 
-### 5. temporal_relevance (列舉字串，必填)
-- **說明**: 內容時效性
-- **可選值** (嚴格選一):
-  - `evergreen` - 長期有效（永恆真理、基礎練習）
-  - `time_sensitive` - 時效性內容（當前能量更新、時事靈性觀點）
-  - `news` - 新聞（特定活動、即時傳訊）
+### 5. temporal_relevance (enum string, required)
+- **Description**: Content timeliness.
+- **Allowed Values** (Select exactly one):
+    - `evergreen` - **Universal/Timeless**: Perennial wisdom, meditation techniques, and philosophical truths that remain valid indefinitely.
+    - `time_sensitive` - **Astrological/Cyclical**: Monthly energy updates, full/new moon readings, or forecasts for specific time periods.
+    - `news` - **Immediate**: Announcements of upcoming retreats, live streams, or immediate community news.
 
-### 6. key_entities (字串陣列，必填)
-- **說明**: 關鍵實體（導師、靈性概念、練習方法、書籍參考）
-- **格式**: 使用 [[雙括號]] 包圍，便於建立知識連結
-- **範例**: ["[[Eckhart Tolle]]", "[[當下的力量]]", "[[脈輪]]", "[[高我]]", "[[冥想]]"]
-- **提示**: 包含導師名稱、靈性概念、練習技巧、書籍、能量中心名稱
+### 6. key_entities (string array, required)
+- **Description**: Key entity identification.
+- **Format**: `[[Entity Name]]`
+- **Scope**:
+   - Teachers/Authors: `[[Eckhart Tolle]]`, `[[Ram Dass]]`, `[[Deepak Chopra]]`, `[[Teal Swan]]`
+   - Systems/Lineages: `[[Reiki]]`, `[[Vipassana]]`, `[[Human Design]]`, `[[A Course in Miracles]]`
+   - Specific Concepts: `[[Kundalini]]`, `[[Merkaba]]`, `[[Akashic Records]]`, `[[Mercury Retrograde]]`
+   - Deities/Archetypes: `[[Shiva]]`, `[[Archangel Michael]]`, `[[Kali]]`
+- **Filter**: Avoid generic terms like "God", "Love", "Universe", "Peace" unless used as a specific proper noun in a system.
 
-### 7. segments (物件陣列，必填)
-- **說明**: 影片結構分段，識別 3-7 個主要段落
-- **每個 segment 欄位**:
-  - `section_type` (列舉字串): 段落類型
-    - `intro` - 開場/引入主題
-    - `key_point` - 核心教導/洞見
-    - `detail` - 細節說明/練習指引
-    - `conclusion` - 總結/祝福
-  - `title` (字串): 段落標題，20 字以內，簡潔描述該段主題
-  - `start_quote` (字串): 段落起始錨點文字，10-20 字，用於定位
+### 7. segments (object array, required)
+- **Description**: Video structure segmentation, identify 3-7 main segments. If the transcript is insufficient for 3 segments, divide into the maximum available segments (minimum 1). If more than 7, aggregate similar content to no more than 7 segments.
+- **Fields per segment**:
+    - `section_type` (enum string): Segment type, must be one of `intro`, `key_point`, `detail`, `conclusion`.
+    - `title` (string): Segment title, within 20 words.
+    - `start_quote` (string): The first 10-20 words of the segment from the original text for positioning.
 
-## 輸出格式 (嚴格 JSON)
+## Output Format (Strict JSON)
 
-請輸出符合以下格式的 JSON，**不要**加入任何其他文字說明：
-
+- Strictly output the following JSON Schema format:
 ```json
 {
-  "semantic_summary": "100-200 字中文摘要...",
-  "key_topics": ["主題1", "主題2", "主題3"],
-  "content_type": "educational",
-  "content_density": "high",
-  "temporal_relevance": "evergreen",
-  "key_entities": ["[[實體1]]", "[[實體2]]"],
-  "segments": [
-    {
-      "section_type": "intro",
-      "title": "主題引入",
-      "start_quote": "今天我們來談談..."
-    },
-    {
-      "section_type": "key_point",
-      "title": "核心教導",
-      "start_quote": "關鍵在於..."
-    },
-    {
-      "section_type": "detail",
-      "title": "練習指引",
-      "start_quote": "你可以這樣練習..."
-    },
-    {
-      "section_type": "conclusion",
-      "title": "總結祝福",
-      "start_quote": "願你..."
-    }
-  ]
+    "semantic_summary": "...",
+    "key_topics": ["..."],
+    "content_type": "...",
+    "content_density": "...",
+    "temporal_relevance": "...",
+    "key_entities": ["[[...]]"],
+    "segments": [...]
 }
 ```
 
-## 重要提醒
+## Key Guidelines
 
-1. **內容來源**: 請讀取檔案 {file_path} 取得完整轉錄稿
-2. **JSON 格式**: 確保輸出是有效的 JSON，欄位名稱必須完全匹配
-3. **列舉值**: content_type, content_density, temporal_relevance, section_type 必須使用指定的 enum 值
-4. **實體格式**: key_entities 必須使用 [[雙括號]] 格式
-5. **錨點文字**: start_quote 必須是轉錄稿中實際存在的文字片段
+1. **Content Source**: Read {file_path} for the full transcript.
+2. **JSON Only**: Output valid JSON.
+3. **Strict Enums**: Use the exact values provided.
+4. **Entity Format**: Always use [[Double Brackets]].
+5. **Quotes**: Ensure start_quote exists in the text.
+6. **Missing Info**: Use "" or [] for missing fields.

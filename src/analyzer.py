@@ -646,7 +646,8 @@ class AnalyzerService:
             frontmatter,
             allow_unicode=True,
             sort_keys=False,  # 保持欄位順序
-            default_flow_style=False
+            default_flow_style=False,
+            width=float("inf")  # 防止長文字被折行，確保 RAG 效果
         )
         
         # 組合最終 Markdown

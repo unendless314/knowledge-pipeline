@@ -1,43 +1,148 @@
 # Knowledge Pipeline 主題分類設定
-# 複製此檔案為 topics.yaml 並填入實際值
+# 來源: youtube_transcriber/channels.yaml - 1:1 完美映射
 
 version: "1.0"
 
-# 主題定義（給 AI 閱讀描述，決定歸屬）
+# 主題定義 - 完全對應 channels.yaml 的 categories
 topics:
-  UFO_UAP:
-    name: "UFO/UAP Research"
-    description: "不明飛行物體研究、政府揭露、先進推進技術"
-    notebook: "UFO-Disclosure-Archive"
-    prompt_template: "ufo_research"
-    channels:
-      - "Ross_Coulthart"
-      - "Ashton_Forbes"
-  
-  Crypto_Finance:
-    name: "Crypto & Finance"
-    description: "加密貨幣分析、宏觀經濟、機構採用"
-    notebook: "Bitcoin-Analysis"
+  # 1. Crypto 加密貨幣 (3 個頻道)
+  crypto:
+    name: "Crypto"
+    description: "加密貨幣分析"
+    notebook: "Crypto Analysis"
     prompt_template: "crypto_tech"
     channels:
-      - "Bankless"
       - "Benjamin_Cowen"
       - "Coin_Bureau"
-  
-  Spiritual_Growth:
+      - "Bankless"
+
+  # 2. Macro Finance 宏觀金融 (4 個頻道)
+  macro_finance:
+    name: "Macro Finance"
+    description: "宏觀金融、貴金屬、外匯"
+    notebook: "Macro-Finance"
+    prompt_template: "macro_finance"
+    channels:
+      - "Just_Dario"
+      - "Trade_Talk"
+      - "Conquer_Trading_Investing"
+      - "Real_Vision"
+
+  # 3. Spiritual Growth 靈性成長 (5 個頻道)
+  spiritual_growth:
     name: "Spiritual Growth"
-    description: "意識覺醒、正念練習、通靈教導"
-    notebook: "Presence-Teachings"
+    description: "靈性成長、能量更新"
+    notebook: "Spiritual-Growth"
     prompt_template: "spiritual"
     channels:
-      - "Eckhart_Tolle"
+      - "Your_Monk_Haku"
       - "Paul_Selig"
+      - "Lee_Harris_Energy"
+      - "Eckhart_Tolle"
+      - "Christina_Lopes"
 
-# 頻道預設值（當 AI 未能分類時的備援規則）
+  # 4. Remote Viewing 遙視預測 (4 個頻道)
+  remote_viewing:
+    name: "Remote Viewing"
+    description: "遙視預測"
+    notebook: "Remote-Viewing"
+    prompt_template: "remote_viewing"
+    channels:
+      - "Future_Forecasting_Group"
+      - "Future_Forecasters"
+      - "Farsight"
+      - "Screaming_Into_The_Night"
+
+  # 5. UFO 神秘學與 UFO (5 個頻道)
+  ufo:
+    name: "UFO Phenomena"
+    description: "UFO 現象（官方揭秘、目擊故事、哲學反思）"
+    notebook: "UFO-Research"
+    prompt_template: "ufo_research"
+    channels:
+      - "Richard_Dolan_Intelligent_Disclosure"
+      - "The_Good_Trouble_Show"
+      - "Ross_Coulthart"
+      - "Sol_Foundation"
+      - "Ashton_Forbes"
+
+  # 6. Tech Career 職涯與技術 (3 個頻道)
+  tech_career:
+    name: "Tech Career"
+    description: "職涯發展、技術趨勢"
+    notebook: "Tech-Career"
+    prompt_template: "tech_career"
+    channels:
+      - "Asian_Dad_Energy"
+      - "Jeff_Su"
+      - "The_Primeagen"
+
+  # 7. Unknown 無法歸類 (所有頻道都可能 fallback 到這裡)
+  unknown:
+    name: "Unclassified"
+    description: "無法歸類的影片"
+    notebook: "Unclassified"
+    prompt_template: "default"
+    channels: []
+
+# 頻道預設值 - 當 AI 未能分類時的備援規則
 channels:
-  "Ross_Coulthart":
-    default_topic: "UFO_UAP"
+  # Crypto
+  "Benjamin_Cowen":
+    default_topic: "crypto"
+  "Coin_Bureau":
+    default_topic: "crypto"
   "Bankless":
-    default_topic: "Crypto_Finance"
+    default_topic: "crypto"
+
+  # Macro Finance
+  "Just_Dario":
+    default_topic: "macro_finance"
+  "Trade_Talk":
+    default_topic: "macro_finance"
+  "Conquer_Trading_Investing":
+    default_topic: "macro_finance"
+  "Real_Vision":
+    default_topic: "macro_finance"
+
+  # Spiritual Growth
+  "Your_Monk_Haku":
+    default_topic: "spiritual_growth"
+  "Paul_Selig":
+    default_topic: "spiritual_growth"
+  "Lee_Harris_Energy":
+    default_topic: "spiritual_growth"
   "Eckhart_Tolle":
-    default_topic: "Spiritual_Growth"
+    default_topic: "spiritual_growth"
+  "Christina_Lopes":
+    default_topic: "spiritual_growth"
+
+  # Remote Viewing
+  "Future_Forecasting_Group":
+    default_topic: "remote_viewing"
+  "Future_Forecasters":
+    default_topic: "remote_viewing"
+  "Farsight":
+    default_topic: "remote_viewing"
+  "Screaming_Into_The_Night":
+    default_topic: "remote_viewing"
+
+  # UFO
+  "Richard_Dolan_Intelligent_Disclosure":
+    default_topic: "ufo"
+  "The_Good_Trouble_Show":
+    default_topic: "ufo"
+  "Ross_Coulthart":
+    default_topic: "ufo"
+  "Sol_Foundation":
+    default_topic: "ufo"
+  "Ashton_Forbes":
+    default_topic: "ufo"
+
+  # Tech Career
+  "Asian_Dad_Energy":
+    default_topic: "tech_career"
+  "Jeff_Su":
+    default_topic: "tech_career"
+  "The_Primeagen":
+    default_topic: "tech_career"

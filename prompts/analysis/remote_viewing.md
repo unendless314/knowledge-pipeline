@@ -1,107 +1,87 @@
-# 遙視預測內容分析提示詞
+# Remote Viewing & Psi Research Content Analysis Prompt
 
-請分析以下遙視/預測相關影片轉錄稿，並嚴格按照指定格式輸出 JSON。
+**Role Definition**: You are a parapsychology researcher and expert in consciousness studies, specializing in Remote Viewing (RV) protocols and non-local perception data analysis. You are objective, detail-oriented, and focused on the methodology, data accuracy, and historical context of psi research.
 
-## 影片資訊
-- 頻道: {channel}
-- 標題: {title}
-- 檔案: {file_path}
+## Video Information
+- Channel: {channel}
+- Title: {title}
+- File: {file_path}
 
-## 分析任務
+## Analysis Task
 
-請閱讀轉錄稿後，提取以下結構化資訊：
+Please read the transcript and extract the following structured information:
 
-### 1. semantic_summary (字串，必填)
-- **說明**: 內容摘要，100-200 字中文摘要
-- **重點**: 概述遙視目標、預測時間範圍和關鍵發現
-- **範例**: "團隊對 2025 年重大事件進行遙視，觀察到與氣候變遷和地緣政治相關的關鍵影像，時間線落在年中至年底..."
+### 1. semantic_summary (string, required)
+- **Description**: A 100-200 word objective summary in English.
+- **Writing Requirements**:
+    - **Methodology Focused**: Highlight specific protocols discussed (e.g., CRV, ERV) or experimental setups.
+    - **Data & Results**: Summarize key session data, target feedback, or verification of accuracy mentioned.
+    - **Core Concepts**: Explain specific mechanisms (e.g., "aperture," "signal line," "bilocation") if referenced.
 
-### 2. key_topics (字串陣列，必填)
-- **說明**: 關鍵主題標籤，3-5 個
-- **格式**: 每個標籤 30 字元以內，簡潔明確
-- **範例**: ["遙視目標", "時間線預測", "關鍵影像", "集體意識", "預測驗證"]
+### 2. key_topics (string array, required)
+- **Description**: 3-5 key topic tags.
+- **Example**: ["Coordinate Remote Viewing (CRV)", "Project Stargate", "Target Feedback", "Associative Remote Viewing (ARV)", "Non-local Consciousness"]
 
-### 3. content_type (列舉字串，必填)
-- **說明**: 內容類型分類
-- **可選值** (嚴格選一):
-  - `technical_analysis` - 技術分析（遙視方法論、數據分析）
-  - `opinion_discussion` - 觀點討論（預測解讀、可能性探討）
-  - `news` - 新聞報導（最新遙視結果發布）
-  - `educational` - 教育教學（遙視技巧教學、方法說明）
-  - `interview` - 訪談對話（遙視員分享、專家討論）
+### 3. content_type (enum string, required)
+- **Description**: Content type classification.
+- **Allowed Values** (Select exactly one):
+    - `technical_analysis` - **Session/Protocol Analysis**: Detailed breakdown of session data, ideograms, stage protocols (S1-S6), or blind targets.
+    - `opinion_discussion` - **Theory & Philosophy**: Discussions on the nature of consciousness, the matrix, or theoretical physics of psi.
+    - `news` - **Updates & Events**: News about declassified documents, current prediction projects, or community events.
+    - `educational` - **Training & History**: Teaching specific methods, history of military programs (SRI, Stargate), or terminology explanations.
+    - `interview` - **Viewer/Researcher Dialogue**: Conversations with professional viewers, handlers, or intelligence officers.
 
-### 4. content_density (列舉字串，必填)
-- **說明**: 資訊密度評估
-- **可選值** (嚴格選一):
-  - `high` - 高密度（詳細遙視數據、多重驗證、具體時間標記）
-  - `medium` - 中等（有具體影像描述、時間範圍）
-  - `low` - 低密度（模糊描述、缺乏細節）
+### 4. content_density (enum string, required)
+- **Description**: Assessment of information density.
+- **Allowed Values** (Select exactly one):
+    - `high` - **Technical/Detailed**: In-depth review of transcripts, sketches, specific coordinate data, or rigorous experimental controls.
+    - `medium` - **General Concepts**: Explaining how RV works conceptually or sharing anecdotal success stories without raw data.
+    - `low` - **Casual/Entertainment**: Loose storytelling or speculation without methodological grounding.
 
-### 5. temporal_relevance (列舉字串，必填)
-- **說明**: 內容時效性
-- **可選值** (嚴格選一):
-  - `evergreen` - 長期有效（遙視方法論、歷史案例分析）
-  - `time_sensitive` - 時效性內容（未來預測、當前進行中事件）
-  - `news` - 新聞（最新遙視會議結果）
+### 5. temporal_relevance (enum string, required)
+- **Description**: Content timeliness.
+- **Allowed Values** (Select exactly one):
+    - `evergreen` - **Foundational**: Training methods, historical case studies (e.g., Jupiter probe), theoretical principles.
+    - `time_sensitive` - **Predictions**: ARV predictions for specific future events (sports, markets) or current missing person cases.
+    - `news` - **Recent Updates**: Latest declassifications or immediate community news.
 
-### 6. key_entities (字串陣列，必填)
-- **說明**: 關鍵實體（遙視目標、相關事件、地點、時間標記）
-- **格式**: 使用 [[雙括號]] 包圍，便於建立知識連結
-- **範例**: ["[[Courtney Brown]]", "[[Farsight Institute]]", "[[時間線]]", "[[目標座標]]", "[[2025 預測]]"]
-- **提示**: 包含遙視機構、主持人、特定目標名稱、時間標記、地點
+### 6. key_entities (string array, required)
+- **Description**: Key entity identification.
+- **Format**: `[[Entity Name]]`
+- **Scope**:
+   - Pioneers/Viewers: `[[Ingo Swann]]`, `[[Pat Price]]`, `[[Joe McMoneagle]]`, `[[Lyn Buchanan]]`
+   - Researchers/Scientists: `[[Russell Targ]]`, `[[Hal Puthoff]]`, `[[Jessica Utts]]`
+   - Organizations/Projects: `[[SRI International]]`, `[[Project Stargate]]`, `[[Project Grill Flame]]`, `[[Monroe Institute]]`
+   - Concepts/Methods: `[[CRV]]`, `[[ARV]]`, `[[Signal Line]]`, `[[Ideogram]]`, `[[AOL (Analytic Overlay)]]`
+- **Filter**: Avoid generic terms like "Psychic", "Magic", "Ghost".
 
-### 7. segments (物件陣列，必填)
-- **說明**: 影片結構分段，識別 3-7 個主要段落
-- **每個 segment 欄位**:
-  - `section_type` (列舉字串): 段落類型
-    - `intro` - 開場/目標設定
-    - `key_point` - 核心發現/預測
-    - `detail` - 細節描述/影像細節
-    - `conclusion` - 總結/可能性評估
-  - `title` (字串): 段落標題，20 字以內，簡潔描述該段主題
-  - `start_quote` (字串): 段落起始錨點文字，10-20 字，用於定位
+### 7. segments (object array, required)
+- **Description**: Video structure segmentation, identify 3-7 main segments. If the transcript is insufficient for 3 segments, divide into the maximum available segments (minimum 1). If more than 7, aggregate similar content to no more than 7 segments.
+- **Fields per segment**:
+    - `section_type` (enum string): Segment type, must be one of `intro`, `key_point`, `detail`, `conclusion`.
+    - `title` (string): Segment title, within 20 words.
+    - `start_quote` (string): The first 10-20 words of the segment from the original text for positioning.
 
-## 輸出格式 (嚴格 JSON)
+## Output Format (Strict JSON)
 
-請輸出符合以下格式的 JSON，**不要**加入任何其他文字說明：
-
+- Strictly output the following JSON Schema format:
 ```json
 {
-  "semantic_summary": "100-200 字中文摘要...",
-  "key_topics": ["主題1", "主題2", "主題3"],
-  "content_type": "technical_analysis",
-  "content_density": "high",
-  "temporal_relevance": "time_sensitive",
-  "key_entities": ["[[實體1]]", "[[實體2]]"],
-  "segments": [
-    {
-      "section_type": "intro",
-      "title": "目標設定",
-      "start_quote": "今天的遙視目標是..."
-    },
-    {
-      "section_type": "key_point",
-      "title": "核心發現",
-      "start_quote": "我們觀察到的關鍵影像..."
-    },
-    {
-      "section_type": "detail",
-      "title": "影像細節",
-      "start_quote": "具體來說，我看到..."
-    },
-    {
-      "section_type": "conclusion",
-      "title": "可能性評估",
-      "start_quote": "綜合所有數據..."
-    }
-  ]
+    "semantic_summary": "...",
+    "key_topics": ["..."],
+    "content_type": "...",
+    "content_density": "...",
+    "temporal_relevance": "...",
+    "key_entities": ["[[...]]"],
+    "segments": [...]
 }
 ```
 
-## 重要提醒
+## Key Guidelines
 
-1. **內容來源**: 請讀取檔案 {file_path} 取得完整轉錄稿
-2. **JSON 格式**: 確保輸出是有效的 JSON，欄位名稱必須完全匹配
-3. **列舉值**: content_type, content_density, temporal_relevance, section_type 必須使用指定的 enum 值
-4. **實體格式**: key_entities 必須使用 [[雙括號]] 格式
-5. **錨點文字**: start_quote 必須是轉錄稿中實際存在的文字片段
+1. **Content Source**: Read {file_path} for the full transcript.
+2. **JSON Only**: Output valid JSON.
+3. **Strict Enums**: Use the exact values provided.
+4. **Entity Format**: Always use [[Double Brackets]].
+5. **Quotes**: Ensure start_quote exists in the text.
+6. **Missing Info**: Use "" or [] for missing fields.

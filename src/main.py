@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Sequence
 
 from src.analyzer import AnalyzerService
-from src.config import ConfigLoader, ConfigValidator
+from src.config import ConfigLoader, ConfigValidator, TopicResolver, load_config
 from src.discovery import DiscoveryService
 from src.llm import LLMClient
 from src.models import PipelineConfig
@@ -75,16 +75,34 @@ class KnowledgePipeline:
     整合 Discovery、Analyzer、Uploader 的完整流程。
     """
     
-    def __init__(self, config: PipelineConfig, logger: logging.Logger):
+    def __init__(
+        self,
+        config: PipelineConfig,
+        logger: logging.Logger,
+        topics_config: dict | None = None,
+        channels_config: dict | None = None
+    ):
         """
         初始化 Pipeline
         
         Args:
             config: Pipeline 配置
             logger: 日誌實例
+            topics_config: 主題配置（可選，用於自動選擇模板）
+            channels_config: 頻道配置（可選，用於自動選擇模板）
         """
         self.config = config
         self.logger = logger
+        
+        # 載入主題配置（如果未提供）
+        if topics_config is None or channels_config is None:
+            _, self.topics_config, self.channels_config = load_config()
+        else:
+            self.topics_config = topics_config
+            self.channels_config = channels_config
+        
+        # 初始化主題解析器
+        self.topic_resolver = TopicResolver()
         
         # 初始化各個服務
         self.discovery = DiscoveryService()
@@ -160,6 +178,49 @@ class KnowledgePipeline:
         
         return len(transcripts)
     
+    def _get_prompt_template_for_channel(
+        self,
+        channel: str,
+        manual_template: str | None = None
+    ) -> str:
+        """
+        取得頻道對應的 prompt template
+        
+        優先順序：
+        1. 手動指定的 template（如果提供）
+        2. 根據頻道查詢 topics.yaml 對應的 template
+        3. 使用預設 "default"
+        
+        Args:
+            channel: 頻道名稱
+            manual_template: 手動指定的模板名稱
+            
+        Returns:
+            Prompt template 名稱
+        """
+        # 優先使用手動指定的模板
+        if manual_template and manual_template != "default":
+            self.logger.debug(f"使用手動指定的模板: {manual_template}")
+            return manual_template
+        
+        # 嘗試根據頻道解析主題
+        try:
+            topic_id = self.topic_resolver.resolve_topic(
+                channel=channel,
+                suggested_topic=None,
+                topics_config=self.topics_config,
+                channels_config=self.channels_config
+            )
+            template = self.topic_resolver.get_prompt_template_for_topic(
+                topic_id,
+                self.topics_config
+            )
+            self.logger.info(f"頻道 '{channel}' 使用自動模板: {template}")
+            return template
+        except Exception as e:
+            self.logger.warning(f"無法解析頻道 '{channel}' 的模板: {e}，使用預設值")
+            return "default"
+    
     def run_analysis(
         self,
         prompt_template: str = "default",
@@ -170,7 +231,7 @@ class KnowledgePipeline:
         執行分析階段
         
         Args:
-            prompt_template: Prompt 模板名稱
+            prompt_template: Prompt 模板名稱（手動指定，會覆蓋自動選擇）
             batch_size: 批次大小
             channel: 指定單一頻道
             
@@ -195,7 +256,31 @@ class KnowledgePipeline:
             self.logger.info("沒有待處理的檔案")
             return 0
         
-        self.logger.info(f"開始分析 {len(transcripts)} 個檔案")
+        # 決定使用的模板
+        # 如果只有一個頻道，可以自動選擇；如果多個頻道，使用預設或手動指定
+        effective_template = prompt_template
+        if len(transcripts) > 0:
+            first_channel = transcripts[0].metadata.channel
+            
+            # 檢查是否所有檔案都是同一個頻道
+            all_same_channel = all(
+                t.metadata.channel == first_channel 
+                for t in transcripts
+            )
+            
+            if all_same_channel:
+                effective_template = self._get_prompt_template_for_channel(
+                    first_channel,
+                    prompt_template if prompt_template != "default" else None
+                )
+            elif prompt_template == "default":
+                self.logger.info("多頻道混合，使用預設模板: default")
+                effective_template = "default"
+            else:
+                self.logger.info(f"多頻道混合，使用手動指定模板: {prompt_template}")
+                effective_template = prompt_template
+        
+        self.logger.info(f"開始分析 {len(transcripts)} 個檔案，模板: {effective_template}")
         
         # 批次分析
         analyzed_count = 0
@@ -206,7 +291,7 @@ class KnowledgePipeline:
         try:
             results = self.analyzer.analyze_batch(
                 transcripts=transcripts,
-                prompt_template=prompt_template,
+                prompt_template=effective_template,
                 output_dir=Path(self.config.intermediate) / "pending",
                 progress_callback=on_progress,
                 delay_between_calls=1.0
@@ -365,31 +450,31 @@ class KnowledgePipeline:
         Returns:
             Notebook 名稱
         """
-        from src.config import TopicResolver, load_config
-        
-        # 載入配置
-        _, topics_config, channels_config = load_config()
-        resolver = TopicResolver()
-        
         suggested = analyzed.analysis.suggested_topic
         channel = analyzed.original.channel
         
         # 情況 1：LLM 回答有效的 topic ID
-        if suggested and suggested in topics_config and suggested != "unknown":
-            return resolver.get_notebook_for_topic(suggested, topics_config)
+        if suggested and suggested in self.topics_config and suggested != "unknown":
+            return self.topic_resolver.get_notebook_for_topic(
+                suggested, self.topics_config
+            )
         
         # 情況 2：LLM 回答 "unknown"
         if suggested == "unknown":
-            return resolver.get_notebook_for_topic("unknown", topics_config)
+            return self.topic_resolver.get_notebook_for_topic(
+                "unknown", self.topics_config
+            )
         
         # 情況 3：LLM 無回答或無效值 → 頻道 fallback
-        topic_id = resolver.resolve_topic(
+        topic_id = self.topic_resolver.resolve_topic(
             channel=channel,
             suggested_topic=None,  # 強制使用頻道預設
-            topics_config=topics_config,
-            channels_config=channels_config
+            topics_config=self.topics_config,
+            channels_config=self.channels_config
         )
-        return resolver.get_notebook_for_topic(topic_id, topics_config)
+        return self.topic_resolver.get_notebook_for_topic(
+            topic_id, self.topics_config
+        )
 
 
 # ============================================================================
@@ -550,8 +635,16 @@ def main(args: Sequence[str] | None = None) -> int:
                 logger.error(f"配置錯誤: {error}")
             return 1
         
+        # 載入主題配置
+        _, topics_config, channels_config = load_config()
+        
         # 初始化 Pipeline
-        pipeline = KnowledgePipeline(config, logger)
+        pipeline = KnowledgePipeline(
+            config=config,
+            logger=logger,
+            topics_config=topics_config,
+            channels_config=channels_config
+        )
         
         # 執行命令
         if parsed_args.command == "run":

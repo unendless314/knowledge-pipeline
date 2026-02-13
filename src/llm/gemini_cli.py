@@ -98,8 +98,8 @@ class GeminiCLIProvider:
             try:
                 # 使用簡短的 meta prompt，讓 Gemini 讀取 prompt 檔案
                 meta_prompt = (
-                    f"請讀取 {prompt_path.name} 並按照其中指示分析 "
-                    f"{transcript_path.name}，然後輸出 JSON 結果"
+                    f"Read {prompt_path.name} and analyze {transcript_path.name} "
+                    f"according to the instructions, then output the JSON result"
                 )
                 
                 # 執行 Gemini（含重試邏輯）
