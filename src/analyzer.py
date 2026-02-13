@@ -78,20 +78,23 @@ class StructuredSegmentation:
     
     執行「LLM 定位 + Python 執刀」的結構化分段策略：
     1. LLM 分析產生 segments（含 start_quote 錨點）
-    2. Python 在原始內容中搜尋 start_quote
-    3. 在匹配位置插入 Markdown 標題
+    2. Python 在純文字內容中搜尋 start_quote
+    3. 在精確匹配位置插入 Markdown 標題
     """
     
-    def inject_headers(
+    def inject_headers_to_pure_text(
         self,
         content: str,
         segments: list[dict]
     ) -> str:
         """
-        在內容中插入 Markdown 標題
+        在純文字內容中插入 Markdown 標題
+        
+        在 start_quote 的精確位置插入標題，並確保標題前後有換行，
+        使標題獨立成段，符合 Markdown 語法。
         
         Args:
-            content: 原始轉錄內容
+            content: 純文字轉錄內容（已移除時間戳）
             segments: 分段資訊列表（從 analysis_result.segments 取得）
                 每個 segment 格式：
                 {
@@ -101,7 +104,7 @@ class StructuredSegmentation:
                 }
         
         Returns:
-            插入標題後的內容
+            插入標題後的純文字內容
         """
         if not segments:
             return content
@@ -111,16 +114,28 @@ class StructuredSegmentation:
         
         for segment in segments:
             # 搜尋錨點位置
-            pos = self.find_quote_position(content, segment.get("start_quote", ""))
+            quote = segment.get("start_quote", "")
+            pos = self.find_quote_position(content, quote)
             if pos is not None:
-                # 找到段落起始位置（行首）
-                line_start = content.rfind('\n', 0, pos) + 1
-                
-                # 準備標題
+                # 在 start_quote 精確位置插入標題
                 section_type = segment.get("section_type", "section").upper()
                 title = segment.get("title", "")
-                header = f"## [{section_type}] {title}\n\n"
-                insertions.append((line_start, header))
+                
+                # 檢查前面是否已經有足夠的換行
+                prefix = content[max(0, pos-2):pos]
+                if prefix.endswith('\n\n'):
+                    # 前面已經有兩個換行，只加標題，後面加兩個換行
+                    header = f"## [{section_type}] {title}\n\n"
+                elif prefix.endswith('\n'):
+                    # 前面只有一個換行，再加一個換行，後面加兩個換行
+                    header = f"\n## [{section_type}] {title}\n\n"
+                elif pos == 0:
+                    # 在內容開頭，後面加兩個換行
+                    header = f"## [{section_type}] {title}\n\n"
+                else:
+                    # 前面沒有換行，加兩個換行，後面也加兩個換行
+                    header = f"\n\n## [{section_type}] {title}\n\n"
+                insertions.append((pos, header))
         
         # 按位置排序（從後往前）
         insertions.sort(key=lambda x: x[0], reverse=True)
@@ -131,6 +146,25 @@ class StructuredSegmentation:
             result = result[:pos] + header + result[pos:]
         
         return result
+    
+    def inject_headers(
+        self,
+        content: str,
+        segments: list[dict]
+    ) -> str:
+        """
+        （已棄用）在內容中插入 Markdown 標題
+        
+        此為向後相容方法，實際呼叫 inject_headers_to_pure_text。
+        
+        Args:
+            content: 轉錄內容
+            segments: 分段資訊列表
+        
+        Returns:
+            插入標題後的內容
+        """
+        return self.inject_headers_to_pure_text(content, segments)
     
     def find_quote_position(
         self,
@@ -241,14 +275,15 @@ class AnalyzerService:
         分析單個轉錄檔案
         
         完整流程：
-        1. 將 TranscriptFile 轉換為 TranscriptInput
-        2. 載入 prompt template 並格式化
+        1. 提取純文字內容（移除時間戳）
+        2. 將 TranscriptFile 轉換為 TranscriptInput（使用純文字）
         3. 確定輸出路徑（若未指定則使用 intermediate/pending/）
         4. 呼叫 LLMClient 執行分析
-        5. （可選）執行結構化分段（inject_headers）
-        6. 構建增強版 Markdown
-        7. 儲存到指定目錄
-        8. 回傳 AnalyzedTranscript
+        5. （可選）執行結構化分段（在純文字中插入標題）
+        6. 構建處理中繼資料
+        7. 構建增強版 Markdown
+        8. 儲存到指定目錄
+        9. 回傳 AnalyzedTranscript
         
         Args:
             transcript: 待分析的轉錄檔案
@@ -265,15 +300,18 @@ class AnalyzerService:
         template = prompt_template or self.default_template
         
         try:
-            # Step 1: 轉換為 LLM 輸入格式
-            input_data = self._to_transcript_input(transcript)
+            # Step 1: 提取純文字內容（移除時間戳）
+            pure_content = self._extract_pure_text(transcript.content)
             
-            # Step 2: 確定輸出路徑
+            # Step 2: 轉換為 LLM 輸入格式（使用純文字）
+            input_data = self._to_transcript_input(transcript, pure_content)
+            
+            # Step 3: 確定輸出路徑
             if output_dir is None:
                 output_dir = Path("intermediate/pending")
             output_path = self._build_output_path(output_dir, transcript)
             
-            # Step 3: 執行 LLM 分析（核心步驟）
+            # Step 4: 執行 LLM 分析（核心步驟）
             # 注意：這裡交給 LLMClient 處理 temp/ 檔案和清理
             llm_log_path = output_path.parent / f"{output_path.stem}_llm_log.md"
             analysis_result = self.llm_client.analyze(
@@ -282,12 +320,12 @@ class AnalyzerService:
                 output_path=llm_log_path
             )
             
-            # Step 4: （可選）結構化分段
-            content = transcript.content
+            # Step 5: （可選）結構化分段（在純文字中插入標題）
+            content = pure_content
             if self.enable_segmentation and analysis_result.segments:
                 content = self._inject_headers(content, analysis_result.segments)
             
-            # Step 5: 構建處理中繼資料
+            # Step 6: 構建處理中繼資料
             processing_meta = ProcessingMetadata(
                 analyzed_by=f"{analysis_result.provider}/{analysis_result.model}",
                 analyzed_at=datetime.now(),
@@ -377,26 +415,60 @@ class AnalyzerService:
         
         return results
     
-    def _to_transcript_input(self, transcript: TranscriptFile) -> TranscriptInput:
+    def _to_transcript_input(
+        self, 
+        transcript: TranscriptFile, 
+        pure_content: str | None = None
+    ) -> TranscriptInput:
         """
         將 TranscriptFile 轉換為 TranscriptInput
         
+        使用純文字內容給 LLM 分析，以提升段落邊界精確度。
+        
         Args:
             transcript: 轉錄檔案
+            pure_content: 純文字內容（已移除時間戳），若為 None 則自動提取
             
         Returns:
             TranscriptInput
         """
+        # 若未提供純文字內容，則自動提取
+        if pure_content is None:
+            pure_content = self._extract_pure_text(transcript.content)
+        
         return TranscriptInput(
             channel=transcript.metadata.channel,
             title=transcript.metadata.title,
-            content=transcript.content,
+            content=pure_content,
             published_at=transcript.metadata.published_at.isoformat(),
             word_count=transcript.metadata.word_count,
             file_path=transcript.path,
             video_id=transcript.metadata.video_id,
             duration=transcript.metadata.duration
         )
+    
+    def _extract_pure_text(self, content: str) -> str:
+        """
+        移除時間戳，提取純文字內容
+        
+        將 [MM:SS] 或 [HH:MM:SS] 格式的時間戳從內容中移除，
+        讓 LLM 分析純粹的語意內容，避免時間戳干擾段落邊界判斷。
+        
+        Args:
+            content: 原始轉錄內容（含時間戳）
+            
+        Returns:
+            純文字內容（無時間戳）
+        """
+        lines = content.split('\n')
+        pure_lines = []
+        
+        for line in lines:
+            # 移除行首的時間戳 [MM:SS] 或 [HH:MM:SS] 格式
+            pure_line = re.sub(r'^\s*\[\d{1,2}:\d{2}(?::\d{2})?\]\s*', '', line)
+            pure_lines.append(pure_line)
+        
+        return '\n'.join(pure_lines)
     
     def _build_output_path(
         self,
@@ -453,14 +525,17 @@ class AnalyzerService:
         segments: list
     ) -> str:
         """
-        在內容中插入 Markdown 標題
+        在純文字內容中插入 Markdown 標題
+        
+        直接在純文字內容中插入標題，無需對齊時間戳，
+        確保標題位置與 LLM 建議的 start_quote 完全匹配。
         
         Args:
-            content: 原始內容
+            content: 純文字內容（已移除時間戳）
             segments: 分段資訊列表
             
         Returns:
-            插入標題後的內容
+            插入標題後的純文字內容
         """
         # 將 Segment 物件轉換為 dict
         segment_dicts = []
@@ -474,7 +549,7 @@ class AnalyzerService:
             else:
                 segment_dicts.append(s)
         
-        return self.segmentation.inject_headers(content, segment_dicts)
+        return self.segmentation.inject_headers_to_pure_text(content, segment_dicts)
     
     def _build_analyzed_markdown(
         self,
