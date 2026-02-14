@@ -124,9 +124,13 @@ class KnowledgePipeline:
             default_template="default"
         )
         
-        # Uploader
+        # Uploader（啟用自動 Insights 生成）
         self.on_client = OpenNotebookClient(config.open_notebook)
-        self.uploader = UploaderService(self.on_client)
+        self.uploader = UploaderService(
+            self.on_client,
+            auto_insights=True,  # 上傳後自動生成 Insights
+            transformation_ids=None  # None = 自動偵測（優先使用 Key Insights）
+        )
     
     def run_discovery(
         self,
@@ -366,10 +370,12 @@ class KnowledgePipeline:
                 
                 # 更新檔案狀態
                 intermediate_dir = Path(self.config.intermediate)
+                original_path = Path(analyzed.processing.source_path)
                 self.state_manager.mark_as_uploaded(
                     filepath=file_path,
                     source_id=source_id,
-                    intermediate_dir=intermediate_dir
+                    intermediate_dir=intermediate_dir,
+                    original_filepath=original_path
                 )
                 
                 self.logger.info(f"上傳成功: {source_id} -> {notebook_name}")

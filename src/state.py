@@ -824,7 +824,8 @@ class StateManager:
         self,
         filepath: Path,
         source_id: str,
-        intermediate_dir: Path
+        intermediate_dir: Path,
+        original_filepath: Path | None = None
     ) -> Path:
         """
         標記為已上傳狀態
@@ -833,11 +834,13 @@ class StateManager:
         1. 更新 frontmatter status 為 uploaded
         2. 寫入 source_id
         3. 搬移至 intermediate/approved/{channel}/{YYYY-MM}/
+        4. （可選）同步更新原始字幕檔案的 frontmatter
         
         Args:
             filepath: 檔案路徑
             source_id: Source ID
             intermediate_dir: intermediate 根目錄
+            original_filepath: 原始字幕檔案路徑（若提供，會同步更新其 frontmatter）
             
         Returns:
             搬移後的檔案路徑
@@ -845,6 +848,15 @@ class StateManager:
         # 更新狀態和 source_id
         self.writer.write_status(filepath, PipelineStatus.UPLOADED)
         self.writer.write_source_id(filepath, source_id)
+        
+        # 同步更新原始字幕檔案的 frontmatter（若提供路徑）
+        if original_filepath and original_filepath.exists():
+            try:
+                self.writer.write_status(original_filepath, PipelineStatus.UPLOADED)
+                self.writer.write_source_id(original_filepath, source_id)
+            except Exception as e:
+                # 記錄錯誤但不影響主要流程
+                print(f"警告: 無法更新原始檔案狀態 {original_filepath}: {e}")
         
         # 讀取 frontmatter 以取得 channel 和 published_at
         frontmatter = self.reader.read(filepath)

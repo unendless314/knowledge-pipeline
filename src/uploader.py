@@ -465,6 +465,60 @@ class OpenNotebookClient:
                 pass
             else:
                 raise  # 其他錯誤（500, 401 等）應該拋出
+    
+    def create_insight(
+        self,
+        source_id: str,
+        transformation_id: str,
+        model_id: str | None = None
+    ) -> dict:
+        """
+        建立 Source Insight（觸發模型分析）
+        
+        呼叫 POST /api/sources/{source_id}/insights
+        這是非同步操作，會立即回傳 202 Accepted，實際分析在背景執行。
+        
+        Args:
+            source_id: Source ID
+            transformation_id: Transformation ID（如 "transformation:xxx"）
+            model_id: 可選，指定模型 ID（如 "model:xxx"）
+            
+        Returns:
+            API 回應（包含 status, message, command_id）
+        """
+        # 確保 source_id 有前綴
+        if not source_id.startswith("source:"):
+            source_id = f"source:{source_id}"
+        
+        data = {"transformation_id": transformation_id}
+        if model_id:
+            data["model_id"] = model_id
+        
+        try:
+            result = self._make_request(
+                "POST",
+                f"/api/sources/{source_id}/insights",
+                json=data
+            )
+            return result if isinstance(result, dict) else {}
+        except APIError as e:
+            # 記錄錯誤但不拋出，避免影響上傳流程
+            if e.status_code == 404:
+                return {"status": "error", "message": "Insights API not available"}
+            return {"status": "error", "message": str(e)}
+    
+    def get_transformations(self) -> list[dict]:
+        """
+        取得所有可用的 Transformations
+        
+        Returns:
+            Transformation 列表
+        """
+        try:
+            result = self._make_request("GET", "/api/transformations")
+            return result if isinstance(result, list) else []
+        except APIError:
+            return []
 
 
 # ============================================================================
@@ -637,7 +691,9 @@ class UploaderService:
     def __init__(
         self,
         client: OpenNotebookClient,
-        builder: SourceBuilder | None = None
+        builder: SourceBuilder | None = None,
+        auto_insights: bool = True,
+        transformation_ids: list[str] | None = None
     ):
         """
         初始化上傳服務
@@ -645,10 +701,15 @@ class UploaderService:
         Args:
             client: Open Notebook 客戶端
             builder: Source 請求建構器
+            auto_insights: 是否在上傳後自動生成 insights（預設 True）
+            transformation_ids: 要執行的 transformation ID 列表，None 表示自動偵測
         """
         self.client = client
         self.builder = builder or SourceBuilder()
         self._stats = UploadStatistics()
+        self.auto_insights = auto_insights
+        self.transformation_ids = transformation_ids
+        self._cached_transformations: list[str] | None = None
     
     def upload(
         self,
@@ -697,6 +758,10 @@ class UploaderService:
             
             # Step 5: 觸發嵌入
             self.client.trigger_embedding(source_id)
+            
+            # Step 6: 自動生成 Insights（背景執行，不等待結果）
+            if self.auto_insights:
+                self._trigger_insights_async(source_id)
             
             # 更新統計
             self._stats.successful += 1
@@ -760,3 +825,52 @@ class UploaderService:
             self._stats.avg_duration_ms = (
                 (self._stats.avg_duration_ms * (n - 1) + duration_ms) / n
             )
+    
+    def _trigger_insights_async(self, source_id: str) -> None:
+        """
+        非同步觸發 Insights 生成（背景執行，不等待結果）
+        
+        根據設定執行一個或多個 transformation：
+        - 若設定了 transformation_ids，使用指定的 IDs
+        - 否則自動偵測可用的 transformation（優先使用 Key Insights）
+        
+        Args:
+            source_id: Source ID
+        """
+        try:
+            # 取得要執行的 transformation IDs
+            trans_ids = self.transformation_ids
+            
+            if trans_ids is None:
+                # 自動偵測：快取並尋找 "Key Insights"
+                if self._cached_transformations is None:
+                    transformations = self.client.get_transformations()
+                    self._cached_transformations = []
+                    
+                    # 優先順序：Key Insights > Simple Summary > 第一個可用
+                    priority_names = ["Key Insights", "Simple Summary", "Dense Summary"]
+                    for priority in priority_names:
+                        for t in transformations:
+                            if t.get("name") == priority:
+                                self._cached_transformations.append(t.get("id"))
+                                break
+                        if self._cached_transformations:
+                            break
+                    
+                    # 如果都沒找到，使用第一個
+                    if not self._cached_transformations and transformations:
+                        self._cached_transformations = [transformations[0].get("id")]
+                
+                trans_ids = self._cached_transformations
+            
+            # 執行每個 transformation（不等待結果）
+            for trans_id in trans_ids:
+                if trans_id:
+                    result = self.client.create_insight(source_id, trans_id)
+                    # 只記錄成功/失敗，不拋出錯誤
+                    if result.get("status") == "pending":
+                        pass  # 背景執行中，這是預期結果
+                        
+        except Exception:
+            # 完全忽略 insights 相關錯誤，不影響上傳流程
+            pass
