@@ -75,7 +75,8 @@ class LLMClient:
                 project_dir=Path(config["project_dir"]),
                 timeout=config.get("timeout", 300),
                 max_retries=config.get("max_retries", 3),
-                initial_retry_delay=config.get("initial_retry_delay", 3)
+                initial_retry_delay=config.get("initial_retry_delay", 3),
+                debug_input=config.get("debug_input", False)  # 預設關閉除錯記錄
             )
         
         elif provider_type == ProviderType.OPENAI_API:

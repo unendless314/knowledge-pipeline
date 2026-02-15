@@ -5,11 +5,10 @@
 ## Video Information
 - Channel: {channel}
 - Title: {title}
-- File: {file_path}
 
 ## Analysis Task
 
-Please read the transcript and extract the following structured information:
+Please analyze the transcript below and extract the following structured information:
 
 ### 1. semantic_summary (string, required)
 - **Description**: A 100-200 word comprehensive summary in English.
@@ -86,9 +85,11 @@ Please read the transcript and extract the following structured information:
 
 ## Key Guidelines
 
-1. **Content Source**: Read {file_path} for the full transcript.
+1. **Content Source**: The video transcript is provided below these instructions (after the `---TRANSCRIPT---` marker).
 2. **JSON Only**: Output valid JSON.
 3. **Strict Enums**: Use the exact values provided.
 4. **Entity Format**: Always use [[Double Brackets]].
 5. **Quotes**: Ensure start_quote exists in the text.
 6. **Missing Info**: Use "" or [] for missing fields.
+
+---TRANSCRIPT---
