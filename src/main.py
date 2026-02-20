@@ -105,7 +105,9 @@ class KnowledgePipeline:
         self.topic_resolver = TopicResolver()
         
         # 初始化各個服務
-        self.discovery = DiscoveryService()
+        self.discovery = DiscoveryService(
+            intermediate_dir=Path(self.config.intermediate)
+        )
         self.state_manager = StateManager()
         
         # LLM Client
@@ -176,6 +178,7 @@ class KnowledgePipeline:
         self.logger.info(f"解析成功: {stats.parsed_success}")
         self.logger.info(f"解析失敗: {stats.parsed_failed}")
         self.logger.info(f"已處理跳過: {stats.filtered_by_status}")
+        self.logger.info(f"已分析跳過: {stats.filtered_by_pending}")
         self.logger.info(f"字數不足跳過: {stats.filtered_by_word_count}")
         self.logger.info(f"頻道限制跳過: {stats.filtered_by_channel}")
         self.logger.info(f"待處理: {stats.ready_to_process}")

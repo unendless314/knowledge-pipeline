@@ -55,6 +55,7 @@ class DiscoveryStatistics:
         parsed_success: 成功解析的檔案數
         parsed_failed: 解析失敗的檔案數
         filtered_by_status: 因 status 被過濾的檔案數
+        filtered_by_pending: 因 pending 檔案已存在被過濾的檔案數
         filtered_by_word_count: 因字數被過濾的檔案數
         filtered_by_channel: 因頻道限制被過濾的檔案數
         ready_to_process: 準備處理的檔案數
@@ -63,6 +64,7 @@ class DiscoveryStatistics:
     parsed_success: int = 0
     parsed_failed: int = 0
     filtered_by_status: int = 0
+    filtered_by_pending: int = 0
     filtered_by_word_count: int = 0
     filtered_by_channel: int = 0
     ready_to_process: int = 0
@@ -441,7 +443,8 @@ class FileFilter:
     def __init__(
         self,
         status_checker: StatusChecker | None = None,
-        min_word_count: int = 100
+        min_word_count: int = 100,
+        intermediate_dir: Path | None = None
     ):
         """
         初始化檔案過濾器
@@ -449,9 +452,11 @@ class FileFilter:
         Args:
             status_checker: 狀態檢查器實例
             min_word_count: 最小字數限制
+            intermediate_dir: intermediate 目錄路徑（用於檢查 pending 檔案）
         """
         self.status_checker = status_checker or StatusChecker()
         self.min_word_count = min_word_count
+        self.intermediate_dir = intermediate_dir
     
     def should_process(
         self,
@@ -477,11 +482,54 @@ class FileFilter:
             status = self.status_checker.get_status(frontmatter)
             return False, f"已處理 (status={status.value})"
         
+        # 檢查對應的 pending 檔案是否已存在（避免中途中斷後重複分析）
+        if self.intermediate_dir and self._is_pending_file_exists(metadata):
+            return False, "已分析 (pending 檔案已存在)"
+        
         # 檢查字數
         if metadata.word_count < self.min_word_count:
             return False, f"字數不足 ({metadata.word_count} < {self.min_word_count})"
         
         return True, None
+    
+    def _is_pending_file_exists(self, metadata: TranscriptMetadata) -> bool:
+        """
+        檢查對應的 pending 檔案是否已存在
+        
+        檔案命名格式與 AnalyzerService._build_output_path() 一致：
+        {intermediate_dir}/pending/{channel}/{YYYY-MM}/{YYYYMMDD}_{video_id}_{slug}_analyzed.md
+        
+        Args:
+            metadata: 轉錄 metadata
+            
+        Returns:
+            True 表示 pending 檔案已存在，應跳過
+        """
+        year_month = metadata.published_at.strftime("%Y-%m")
+        slug = self._slugify(metadata.title, max_length=50)
+        pending_file = (
+            self.intermediate_dir
+            / "pending"
+            / metadata.channel
+            / year_month
+            / f"{metadata.published_at.strftime('%Y%m%d')}_{metadata.video_id}_{slug}_analyzed.md"
+        )
+        return pending_file.exists()
+    
+    def _slugify(self, text: str, max_length: int = 50) -> str:
+        """
+        將標題轉換為 slug（與 AnalyzerService._slugify 邏輯一致）
+        
+        Args:
+            text: 原始文字
+            max_length: 最大長度
+            
+        Returns:
+            slug 字串
+        """
+        slug = re.sub(r'[^\w\s-]', '', text)
+        slug = re.sub(r'[-\s]+', '-', slug)
+        return slug[:max_length].strip('-')
     
     def filter_by_channel(
         self,
@@ -531,7 +579,8 @@ class DiscoveryService:
         extractor: TranscriptMetadataExtractor | None = None,
         status_checker: StatusChecker | None = None,
         file_filter: FileFilter | None = None,
-        temp_dir: Path | None = None
+        temp_dir: Path | None = None,
+        intermediate_dir: Path | None = None
     ):
         """
         初始化發現服務
@@ -541,14 +590,18 @@ class DiscoveryService:
             parser: Frontmatter 解析器
             extractor: Metadata 提取器
             status_checker: 狀態檢查器
-            file_filter: 檔案過濾器
+            file_filter: 檔案過濾器（若提供則忽略 intermediate_dir）
             temp_dir: 臨時檔案目錄
+            intermediate_dir: intermediate 目錄路徑，用於 pending 檔案存在性檢查
         """
         self.scanner = scanner or FileScanner()
         self.parser = parser or FrontmatterParser()
         self.extractor = extractor or TranscriptMetadataExtractor()
         self.status_checker = status_checker or StatusChecker()
-        self.file_filter = file_filter or FileFilter(self.status_checker)
+        self.file_filter = file_filter or FileFilter(
+            self.status_checker,
+            intermediate_dir=intermediate_dir
+        )
         self.temp_dir = temp_dir or Path("temp")
         
         self._stats = DiscoveryStatistics()
@@ -607,6 +660,8 @@ class DiscoveryService:
                 if not should_process:
                     if "已處理" in reason:
                         self._stats.filtered_by_status += 1
+                    elif "已分析" in reason:
+                        self._stats.filtered_by_pending += 1
                     elif "字數" in reason:
                         self._stats.filtered_by_word_count += 1
                     continue
