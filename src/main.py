@@ -446,44 +446,55 @@ class KnowledgePipeline:
     
     def _resolve_notebook(self, analyzed) -> str:
         """
-        解析 Notebook 名稱
+        解析 Notebook 名稱（自動按月分片）
+        
+        Notebook 命名規則: "{BaseName}-YYYY-MM"
+        例如: "Crypto-2026-02", "UFO-Research-2026-01"
         
         邏輯：
-        1. LLM 回答有效的 topic ID → 查表對應 Notebook
-        2. LLM 回答 "unknown" → Unclassified Notebook
+        1. LLM 回答有效的 topic ID → 查表對應 Notebook Base Name
+        2. LLM 回答 "unknown" → Unclassified Notebook Base Name
         3. LLM 無回答/無效值 → 頻道 fallback
+        4. 最後加上影片發布日期的年月後綴
         
         Args:
             analyzed: 分析結果
             
         Returns:
-            Notebook 名稱
+            Notebook 名稱（含年月後綴）
         """
         suggested = analyzed.analysis.suggested_topic
         channel = analyzed.original.channel
         
+        # 取得 Base Notebook 名稱
+        base_notebook: str | None = None
+        
         # 情況 1：LLM 回答有效的 topic ID
         if suggested and suggested in self.topics_config and suggested != "unknown":
-            return self.topic_resolver.get_notebook_for_topic(
+            base_notebook = self.topic_resolver.get_notebook_for_topic(
                 suggested, self.topics_config
             )
-        
         # 情況 2：LLM 回答 "unknown"
-        if suggested == "unknown":
-            return self.topic_resolver.get_notebook_for_topic(
+        elif suggested == "unknown":
+            base_notebook = self.topic_resolver.get_notebook_for_topic(
                 "unknown", self.topics_config
             )
-        
         # 情況 3：LLM 無回答或無效值 → 頻道 fallback
-        topic_id = self.topic_resolver.resolve_topic(
-            channel=channel,
-            suggested_topic=None,  # 強制使用頻道預設
-            topics_config=self.topics_config,
-            channels_config=self.channels_config
-        )
-        return self.topic_resolver.get_notebook_for_topic(
-            topic_id, self.topics_config
-        )
+        else:
+            topic_id = self.topic_resolver.resolve_topic(
+                channel=channel,
+                suggested_topic=None,  # 強制使用頻道預設
+                topics_config=self.topics_config,
+                channels_config=self.channels_config
+            )
+            base_notebook = self.topic_resolver.get_notebook_for_topic(
+                topic_id, self.topics_config
+            )
+        
+        # 加上年月後綴（按月分片）
+        # 使用影片發布日期，確保同一個月的影片進入同一個 Notebook
+        published_date = analyzed.original.published_at
+        return f"{base_notebook}-{published_date.year:04d}-{published_date.month:02d}"
 
 
 # ============================================================================

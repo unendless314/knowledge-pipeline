@@ -21,11 +21,15 @@
 # 進入專案目錄
 cd /home/openclaw/Projects/knowledge-pipeline
 
-# 啟動虛擬環境
+# 啟動虛擬環境（必須執行！）
 source venv/bin/activate
+
+# 確認啟動成功（前面會出現 (venv) 字樣）
 ```
 
 ### 2. 基本指令
+
+**注意**：以下範例使用 `python`，如果你的系統沒有 `python` 指令，請改用 `python3`：
 
 ```bash
 # 查看所有可用命令
@@ -36,6 +40,9 @@ python run.py run --channel "Bankless" --dry-run
 
 # 正式執行
 python run.py run --channel "Bankless"
+
+# 如果你的系統沒有 python 指令，請改用 python3：
+# python3 run.py run --channel "Bankless" --dry-run
 ```
 
 ---
