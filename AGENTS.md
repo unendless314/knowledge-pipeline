@@ -112,6 +112,12 @@ knowledge-pipeline/
 │       ├── gemini_cli.py         # Gemini CLI Provider
 │       └── prompts.py            # PromptLoader, OutputParser
 │
+├── scripts/                      # 自動化腳本
+│   ├── run_pipeline.sh           # Pipeline wrapper script（自動化執行）
+│   └── cron/                     # Cron job 管理
+│       ├── crontab.txt           # Cron 任務定義
+│       └── install.sh            # 安裝/管理工具
+│
 ├── config/                       # 配置檔案
 │   ├── config.yaml               # 主要配置（需手動建立）
 │   ├── config.yaml.example       # 配置範例
@@ -225,6 +231,8 @@ cp config/topics.yaml.example config/topics.yaml
 
 ### 5.3 CLI 命令
 
+#### 手動執行
+
 ```bash
 # 執行完整流程
 python run.py run
@@ -246,6 +254,33 @@ python run.py run --channel "Bankless"
 
 # 詳細輸出模式
 python run.py -v run
+```
+
+#### 自動化執行（推薦）
+
+專案提供完整的自動化解決方案，無需手動執行：
+
+```bash
+# 1. 測試執行（先確認沒問題）
+./scripts/cron/install.sh test
+
+# 2. 安裝 Cron Job（每天凌晨 3:00 自動執行）
+./scripts/cron/install.sh install
+
+# 3. 查看狀態
+./scripts/cron/install.sh status
+
+# 4. 移除自動化
+./scripts/cron/install.sh remove
+```
+
+**Wrapper Script 直接執行**（不依賴 cron）：
+```bash
+# 執行全部頻道
+./scripts/run_pipeline.sh
+
+# 執行特定頻道
+./scripts/run_pipeline.sh "Bankless"
 ```
 
 ---

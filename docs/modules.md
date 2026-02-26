@@ -113,4 +113,31 @@
 
 ---
 
+## 4. 自動化層（完成）
+
+雖然不屬於核心開發模組，但自動化層是實際運營的重要組成：
+
+| 元件 | 檔案 | 狀態 |
+|------|------|------|
+| Wrapper Script | `scripts/run_pipeline.sh` | ✅ 完成 |
+| Cron Install | `scripts/cron/install.sh` | ✅ 完成 |
+| Cron Config | `scripts/cron/crontab.txt` | ✅ 完成 |
+
+### 使用方式
+
+```bash
+# 測試執行
+./scripts/cron/install.sh test
+
+# 安裝自動化（每天凌晨 3:00）
+./scripts/cron/install.sh install
+
+# 查看狀態
+./scripts/cron/install.sh status
+```
+
+詳細說明請參閱 `architecture.md` 第 9 節。
+
+---
+
 *文件結束*

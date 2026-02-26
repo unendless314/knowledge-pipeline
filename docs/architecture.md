@@ -485,9 +485,82 @@ class RSSAdapter: ...  # Future
 
 ---
 
-## 9. 附錄
+## 9. 自動化層（Automation Layer）
 
-### 9.1 目錄結構
+### 9.1 設計目標
+
+為了避免每天手動執行 pipeline，專案內建輕量級自動化層：
+
+- **可管理性**：統一的安裝/移除/測試指令
+- **可靠性**：執行前自動檢查環境與服務健康
+- **可觀測性**：統一的日誌輸出，保留 30 天
+- **零侵入**：不修改現有 Python 代碼，純粹包裝層
+
+### 9.2 架構
+
+```
+┌─────────────────────────────────────────────┐
+│              Automation Layer               │
+├─────────────────────────────────────────────┤
+│                                             │
+│  ┌─────────────────┐  ┌─────────────────┐  │
+│  │  Cron Daemon    │  │  Wrapper Script │  │
+│  │  (系統服務)      │  │  (run_pipeline) │  │
+│  │                 │  │                 │  │
+│  │ - Schedule:     │──│ - Env check     │  │
+│  │   每天 3:00     │  │ - Health check  │  │
+│  │ - Log: cron.log │  │ - Execute run.py│  │
+│  └─────────────────┘  │ - Log rotate    │  │
+│                       └────────┬────────┘  │
+│                                │           │
+│                       ┌────────▼────────┐  │
+│                       │   Knowledge     │  │
+│                       │   Pipeline      │  │
+│                       │   (Core)        │  │
+│                       └─────────────────┘  │
+│                                             │
+└─────────────────────────────────────────────┘
+```
+
+### 9.3 元件說明
+
+| 元件 | 檔案 | 職責 |
+|------|------|------|
+| **Cron Job** | `crontab` (系統) | 定時觸發，每天凌晨 3:00 執行 |
+| **Install Script** | `scripts/cron/install.sh` | 安裝/移除/測試/查看狀態 |
+| **Wrapper Script** | `scripts/run_pipeline.sh` | 環境檢查、健康檢查、執行、日誌 |
+| **Cron Config** | `scripts/cron/crontab.txt` | 可編輯的排程定義 |
+
+### 9.4 使用方式
+
+```bash
+# 安裝自動化
+./scripts/cron/install.sh install
+
+# 測試執行（不影響 cron）
+./scripts/cron/install.sh test
+
+# 查看狀態
+./scripts/cron/install.sh status
+
+# 移除自動化
+./scripts/cron/install.sh remove
+```
+
+### 9.5 錯誤處理
+
+| 情境 | Wrapper 行為 | 日誌位置 |
+|------|--------------|---------|
+| Open Notebook 未運行 | 中止，記錄錯誤 | `logs/pipeline-{timestamp}.log` |
+| venv 不存在 | 中止，記錄錯誤 | `logs/pipeline-{timestamp}.log` |
+| Pipeline 執行失敗 | 回傳錯誤碼 | `logs/pipeline-{timestamp}.log` |
+| 部分頻道失敗 | 繼續執行其他頻道 | 同上 |
+
+---
+
+## 10. 附錄
+
+### 10.1 目錄結構
 
 ```
 knowledge-pipeline/
@@ -500,6 +573,11 @@ knowledge-pipeline/
 │   ├── analyzer.py          # LLM analysis
 │   ├── uploader.py          # ON API client
 │   └── state.py             # State management
+├── scripts/                 # Automation scripts
+│   ├── run_pipeline.sh      # Wrapper script with health checks
+│   └── cron/
+│       ├── crontab.txt      # Cron job definitions
+│       └── install.sh       # Install/manage cron jobs
 ├── config/
 │   ├── config.yaml          # Main config
 │   └── topics.yaml          # Topic mapping
@@ -528,7 +606,7 @@ knowledge-pipeline/
         └── tests/
 ```
 
-### 9.2 狀態機
+### 10.2 狀態機
 
 ```
                     ┌─────────────┐

@@ -7,6 +7,7 @@
 ## 📖 目錄
 
 - [快速開始](#快速開始)
+- [自動化執行](#自動化執行) ⭐ 推薦
 - [CLI 命令參考](#cli-命令參考)
 - [工作流程](#工作流程)
 - [常見問題](#常見問題)
@@ -44,6 +45,75 @@ python run.py run --channel "Bankless"
 # 如果你的系統沒有 python 指令，請改用 python3：
 # python3 run.py run --channel "Bankless" --dry-run
 ```
+
+---
+
+## 自動化執行 ⭐ 推薦
+
+每天手動執行很麻煩？專案已內建完整的自動化解決方案！
+
+### 🚀 快速設定（3 步驟）
+
+```bash
+# Step 1: 進入專案目錄
+cd /home/openclaw/Projects/knowledge-pipeline
+
+# Step 2: 測試執行（確認一切正常）
+./scripts/cron/install.sh test
+
+# Step 3: 安裝自動化（每天凌晨 3:00 執行）
+./scripts/cron/install.sh install
+```
+
+### 📋 管理指令
+
+```bash
+# 查看自動化狀態
+./scripts/cron/install.sh status
+
+# 移除自動化
+./scripts/cron/install.sh remove
+
+# 查看說明
+./scripts/cron/install.sh help
+```
+
+### 🔧 手動執行 Wrapper
+
+如果不想用 cron，也可以直接用 wrapper script：
+
+```bash
+# 執行全部頻道
+./scripts/run_pipeline.sh
+
+# 執行特定頻道
+./scripts/run_pipeline.sh "Bankless"
+```
+
+### ⚙️ 自訂執行時間
+
+編輯 `scripts/cron/crontab.txt`，修改執行時間後重新安裝：
+
+```bash
+# 預設：每天凌晨 3:00
+0 3 * * * /home/openclaw/Projects/knowledge-pipeline/scripts/run_pipeline.sh
+
+# 改為早上 9:00
+0 9 * * * /home/openclaw/Projects/knowledge-pipeline/scripts/run_pipeline.sh
+
+# 改為每 6 小時執行一次
+0 */6 * * * /home/openclaw/Projects/knowledge-pipeline/scripts/run_pipeline.sh
+```
+
+### ✅ Wrapper Script 功能
+
+| 功能 | 說明 |
+|------|------|
+| 環境檢查 | 自動確認 venv 和 run.py 存在 |
+| 服務健康檢查 | 確認 Open Notebook 是否運行 |
+| 統一日誌 | 輸出寫入 `logs/pipeline-YYYY-MM-DD_HH-MM-SS.log` |
+| 舊日誌清理 | 自動保留最近 30 天的 log |
+| 錯誤處理 | 明確的錯誤訊息和回傳碼 |
 
 ---
 

@@ -45,6 +45,8 @@ The main entry point is `run.py`.
 - `TRANSCRIBER_OUTPUT_PATH`: (Optional) Override for input transcript path.
 - `INTERMEDIATE_PATH`: (Optional) Override for intermediate storage path.
 
+### Manual Execution
+
 - **Run Full Pipeline**:
   ```bash
   python run.py run
@@ -61,6 +63,33 @@ The main entry point is `run.py`.
   - `python run.py discover`: Only scan for new files.
   - `python run.py analyze`: Only perform AI analysis on pending files.
   - `python run.py upload`: Only upload analyzed files.
+
+### Automation (Cron Job)
+
+The project includes automation scripts in `scripts/`:
+
+- **Install Cron Job** (runs daily at 3:00 AM):
+  ```bash
+  ./scripts/cron/install.sh install
+  ```
+- **Test Automation**:
+  ```bash
+  ./scripts/cron/install.sh test
+  ```
+- **Check Status**:
+  ```bash
+  ./scripts/cron/install.sh status
+  ```
+- **Remove Cron Job**:
+  ```bash
+  ./scripts/cron/install.sh remove
+  ```
+
+- **Run Wrapper Script Directly**:
+  ```bash
+  ./scripts/run_pipeline.sh              # All channels
+  ./scripts/run_pipeline.sh "Bankless"   # Specific channel
+  ```
 
 ---
 
