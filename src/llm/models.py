@@ -20,6 +20,7 @@ from pathlib import Path
 class ProviderType(str, Enum):
     """支援的 LLM Provider 類型"""
     GEMINI_CLI = "gemini_cli"
+    ANTIGRAVITY_CLI = "antigravity_cli"
     OPENAI_API = "openai_api"
     GEMINI_API = "gemini_api"
     LOCAL_LLM = "local_llm"
